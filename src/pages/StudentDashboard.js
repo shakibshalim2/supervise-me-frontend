@@ -695,6 +695,9 @@ const [showTeamRequests, setShowTeamRequests] = useState(false);
 const [sendingTeamRequestId, setSendingTeamRequestId] = useState(null);
 const [pendingLeaderApprovals, setPendingLeaderApprovals] = useState([]);
 
+const [teamHasActiveMeeting, setTeamHasActiveMeeting] = useState(false);
+const [activeMeetingInfo, setActiveMeetingInfo] = useState(null);
+
 // Add this with your other state declarations around line 100-200
   const [showSupervisionHistoryModal, setShowSupervisionHistoryModal] = useState(false);
   // Add these state variables
@@ -873,6 +876,36 @@ const confirmRemoveMember = async () => {
   };
 
 
+
+  const checkForActiveMeeting = async () => {
+  if (!myTeam?._id) return;
+  
+  try {
+    const token = localStorage.getItem('studentToken');
+    const response = await fetch(`${API_BASE}/api/teams/${myTeam._id}/active-meeting`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      setTeamHasActiveMeeting(data.hasActiveMeeting);
+      setActiveMeetingInfo(data.hasActiveMeeting ? data : null);
+    }
+  } catch (error) {
+    console.error('Error checking active meeting:', error);
+  }
+};
+
+// Check for active meeting when team changes
+useEffect(() => {
+  if (myTeam) {
+    checkForActiveMeeting();
+    
+    // Check every 10 seconds for active meeting
+    const interval = setInterval(checkForActiveMeeting, 10000);
+    return () => clearInterval(interval);
+  }
+}, [myTeam]);
 
   const startScreenShare = async () => {
   try {
@@ -3018,7 +3051,8 @@ const leaveTeamMeeting = async () => {
     if (socket && currentMeetingId) {
       socket.emit('leave-meeting', {
         meetingId: currentMeetingId,
-        userId: profile._id
+        userId: profile._id,
+        teamId: myTeam._id // Add teamId here
       });
     }
 
@@ -3053,6 +3087,10 @@ const leaveTeamMeeting = async () => {
     setIsScreenSharing(false);
     setIsMicMuted(false);
     setIsCameraOff(false);
+    
+    // Reset active meeting state
+    setTeamHasActiveMeeting(false);
+    setActiveMeetingInfo(null);
 
     showInlineNotification(
       `Meeting ended. Duration: ${duration} minutes.`, 
@@ -4762,67 +4800,50 @@ const startTeamMeeting = async () => {
   }
 
   try {
-    const meetingId = `team-${myTeam._id}-${uuidv4()}`;
-    setCurrentMeetingId(meetingId);
-    setMeetingStartTime(new Date());
-    setIsInTeamMeeting(true);
-    setShowMeetingInterface(true);
-
-    // Get user media
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true
-    });
-    setLocalStream(stream);
-
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = stream;
-    }
-
-    // FIXED: Add yourself as host to participants
-    const hostParticipant = {
-      id: profile._id,
-      name: profile.name,
-      socketId: socket?.id,
-      isHost: true,
-      joinedAt: new Date()
-    };
-    
-    setMeetingParticipants([hostParticipant]);
-
-    // Join the meeting room first
-    if (socket) {
-      socket.emit('join-meeting', {
-        meetingId,
-        userId: profile._id,
-        userName: profile.name,
-        teamId: myTeam._id
-      });
-    }
-
-    // Send meeting notification to all team members
     const token = localStorage.getItem('studentToken');
-    await fetch(`${API_BASE}/api/teams/${myTeam._id}/start-meeting`, {
+    const response = await fetch(`${API_BASE}/api/teams/${myTeam._id}/start-meeting`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
-        meetingId,
         startedBy: profile.name,
         startedByStudentId: profile.studentId
       })
     });
 
-    showInlineNotification('Team meeting started! Other members will be notified.', 'success');
+    const data = await response.json();
+
+    if (response.ok) {
+      const { meetingId, isJoining } = data;
+      
+      if (isJoining) {
+        showInlineNotification(`Joining existing meeting started by ${data.startedBy}`, 'info');
+      } else {
+        showInlineNotification('Team meeting started! Other members will be notified.', 'success');
+      }
+      
+      // Join the meeting
+      await joinTeamMeeting(meetingId);
+      
+      // Update active meeting state
+      setTeamHasActiveMeeting(true);
+      setActiveMeetingInfo({
+        meetingId,
+        startedBy: data.startedBy,
+        startTime: data.startTime || new Date()
+      });
+      
+    } else {
+      showInlineNotification(data.message || 'Failed to start meeting', 'error');
+    }
 
   } catch (error) {
     console.error('Failed to start meeting:', error);
-    showInlineNotification('Failed to start meeting. Please check camera/microphone permissions.', 'error');
+    showInlineNotification('Failed to start meeting. Please try again.', 'error');
   }
 };
-
 
 // Toggle Microphone
 const toggleMicrophone = () => {
@@ -6717,6 +6738,50 @@ const getAvailableCategories = () => {
                     </div>
 
                     <div className="card-footer">
+
+                      {myTeam && (
+        <div className="team-meeting-section">
+          {teamHasActiveMeeting ? (
+            <div className="active-meeting-info">
+              <div className="meeting-status">
+                <span className="status-indicator active"></span>
+                <span>Meeting in progress</span>
+              </div>
+              <div className="meeting-details">
+                <small>
+                  Started by {activeMeetingInfo?.startedBy} at{' '}
+                  {new Date(activeMeetingInfo?.startTime).toLocaleTimeString()}
+                </small>
+              </div>
+              <button
+                className="join-meeting-btn"
+                onClick={startTeamMeeting}
+                disabled={isInTeamMeeting}
+              >
+                {isInTeamMeeting ? (
+                  <>
+                    <FaVideo /> In Meeting
+                  </>
+                ) : (
+                  <>
+                    <FaVideo /> Join Meeting
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            <button
+              className="start-meeting-btn"
+              onClick={startTeamMeeting}
+              disabled={!myTeam || myTeam.members.length < 2}
+            >
+              <FaVideo />
+              Start Team Meeting
+            </button>
+          )}
+        </div>
+      )}
+
                       <button
                         className="primary-btn"
                         onClick={() => setActiveTab("chat")}
