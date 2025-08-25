@@ -2733,6 +2733,7 @@ useEffect(() => {
   const [socket, setSocket] = useState(null);
 
 // Initialize Socket.IO connection
+// Replace the existing socket useEffect around lines 1000-1100
 useEffect(() => {
   if (profile._id && !socket) {
     const newSocket = io(API_BASE);
@@ -2747,7 +2748,7 @@ useEffect(() => {
     });
     
     // Handle meeting invitation
-   newSocket.on('meeting-invitation', (data) => {
+    newSocket.on('meeting-invitation', (data) => {
       const { meetingId, teamName, startedBy } = data;
       
       if (window.confirm(`${startedBy} started a meeting for team "${teamName}". Do you want to join?`)) {
@@ -2763,22 +2764,27 @@ useEffect(() => {
       setMeetingParticipants(prev => {
         const exists = prev.find(p => p.id === data.userId);
         if (!exists) {
-          return [...prev, {
+          const newParticipants = [...prev, {
             id: data.userId,
             name: data.userName,
             socketId: data.socketId,
             isHost: false,
             joinedAt: new Date()
           }];
+          console.log('Updated participants:', newParticipants);
+          return newParticipants;
         }
         return prev;
       });
       
       // Create peer connection for the new user
-      await createPeerConnection(data.socketId, data.userName, true);
+      if (localStreamRef.current) {
+        await createPeerConnection(data.socketId, data.userName, true);
+      }
     });
     
-newSocket.on('existing-participants', async (participants) => {
+    // FIXED: Handle existing participants when joining
+    newSocket.on('existing-participants', async (participants) => {
       console.log('Received existing participants:', participants);
       
       // Update participants list with existing users
@@ -2798,15 +2804,19 @@ newSocket.on('existing-participants', async (participants) => {
           }
         });
         
+        console.log('Updated with existing participants:', newParticipants);
         return newParticipants;
       });
       
       // Create peer connections for all existing participants
-      for (const participant of participants) {
-        await createPeerConnection(participant.socketId, participant.userName, false);
+      if (localStreamRef.current) {
+        for (const participant of participants) {
+          await createPeerConnection(participant.socketId, participant.userName, false);
+        }
       }
     });
     
+    // WebRTC signaling handlers
     newSocket.on('offer', async (data) => {
       await handleOffer(data.offer, data.from);
     });
@@ -2819,19 +2829,21 @@ newSocket.on('existing-participants', async (participants) => {
       await handleIceCandidate(data.candidate, data.from);
     });
     
-      newSocket.on('user-left-meeting', (data) => {
+    newSocket.on('user-left-meeting', (data) => {
       console.log('User left meeting:', data);
       
       // Remove from participants list
-      setMeetingParticipants(prev => 
-        prev.filter(p => p.id !== data.userId)
-      );
+      setMeetingParticipants(prev => {
+        const filtered = prev.filter(p => p.id !== data.userId);
+        console.log('Participants after user left:', filtered);
+        return filtered;
+      });
       
-      // Clean up peer connection
-      handleUserLeftMeeting(data.userId);
+      // Clean up peer connection and remote stream
+      handleUserLeftMeeting(data.socketId);
     });
-    
 
+    // Screen sharing events
     newSocket.on('screen-share-started', (data) => {
       const { userId, userName } = data;
       if (userId !== profile._id) {
@@ -2862,27 +2874,40 @@ newSocket.on('existing-participants', async (participants) => {
   }
 }, [profile._id]);
 
+
 // WebRTC helper functions
+// FIXED: createPeerConnection function
 const createPeerConnection = async (socketId, userName, isInitiator) => {
   try {
+    console.log(`Creating peer connection for ${userName} (${socketId}), initiator: ${isInitiator}`);
+    
     const peerConnection = new RTCPeerConnection(rtcConfiguration);
     
-    // Add local stream
-    if (localStream) {
-      localStream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, localStream);
+    // Add local stream tracks
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        console.log(`Adding local track: ${track.kind}`);
+        peerConnection.addTrack(track, localStreamRef.current);
       });
     }
     
     // Handle remote stream
     peerConnection.ontrack = (event) => {
+      console.log(`Received remote track from ${userName}:`, event.track.kind);
       const [remoteStream] = event.streams;
-      setRemoteStreams(prev => new Map(prev.set(socketId, remoteStream)));
+      
+      setRemoteStreams(prev => {
+        const newStreams = new Map(prev);
+        newStreams.set(socketId, remoteStream);
+        console.log(`Added remote stream for ${socketId}, total streams:`, newStreams.size);
+        return newStreams;
+      });
     };
     
     // Handle ICE candidates
     peerConnection.onicecandidate = (event) => {
       if (event.candidate && socket) {
+        console.log(`Sending ICE candidate to ${socketId}`);
         socket.emit('ice-candidate', {
           candidate: event.candidate,
           to: socketId
@@ -2890,11 +2915,28 @@ const createPeerConnection = async (socketId, userName, isInitiator) => {
       }
     };
     
-    setPeerConnections(prev => new Map(prev.set(socketId, peerConnection)));
+    // Handle connection state changes
+    peerConnection.onconnectionstatechange = () => {
+      console.log(`Connection state for ${socketId}:`, peerConnection.connectionState);
+    };
+    
+    // Store peer connection
+    setPeerConnections(prev => {
+      const newConnections = new Map(prev);
+      newConnections.set(socketId, peerConnection);
+      return newConnections;
+    });
+    
+    // Also update the ref for immediate access
+    peerConnectionsRef.current.set(socketId, peerConnection);
     
     // Create offer if initiator
     if (isInitiator) {
-      const offer = await peerConnection.createOffer();
+      console.log(`Creating offer for ${socketId}`);
+      const offer = await peerConnection.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+      });
       await peerConnection.setLocalDescription(offer);
       
       socket.emit('offer', {
@@ -2908,92 +2950,121 @@ const createPeerConnection = async (socketId, userName, isInitiator) => {
   }
 };
 
+// FIXED: handleOffer function
 const handleOffer = async (offer, from) => {
   try {
-    const peerConnection = peerConnections.get(from);
+    console.log(`Handling offer from ${from}`);
+    const peerConnection = peerConnectionsRef.current.get(from) || peerConnections.get(from);
+    
     if (peerConnection) {
-      await peerConnection.setRemoteDescription(offer);
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
       
-      const answer = await peerConnection.createAnswer();
+      const answer = await peerConnection.createAnswer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+      });
       await peerConnection.setLocalDescription(answer);
       
       socket.emit('answer', {
         answer: answer,
         to: from
       });
+      
+      console.log(`Sent answer to ${from}`);
+    } else {
+      console.error(`No peer connection found for ${from}`);
     }
   } catch (error) {
     console.error('Error handling offer:', error);
   }
 };
 
+// FIXED: handleAnswer function
 const handleAnswer = async (answer, from) => {
   try {
-    const peerConnection = peerConnections.get(from);
+    console.log(`Handling answer from ${from}`);
+    const peerConnection = peerConnectionsRef.current.get(from) || peerConnections.get(from);
+    
     if (peerConnection) {
-      await peerConnection.setRemoteDescription(answer);
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+      console.log(`Set remote description for ${from}`);
+    } else {
+      console.error(`No peer connection found for ${from}`);
     }
   } catch (error) {
     console.error('Error handling answer:', error);
   }
 };
 
+// FIXED: handleIceCandidate function
 const handleIceCandidate = async (candidate, from) => {
   try {
-    const peerConnection = peerConnections.get(from);
+    const peerConnection = peerConnectionsRef.current.get(from) || peerConnections.get(from);
+    
     if (peerConnection) {
-      await peerConnection.addIceCandidate(candidate);
+      await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      console.log(`Added ICE candidate from ${from}`);
+    } else {
+      console.error(`No peer connection found for ${from}`);
     }
   } catch (error) {
     console.error('Error handling ICE candidate:', error);
   }
 };
 
-const handleUserLeftMeeting = (userId) => {
-  console.log('Cleaning up for user who left:', userId);
-  
-  // Remove from participants
-  setMeetingParticipants(prev => prev.filter(p => p.id !== userId));
+// FIXED: handleUserLeftMeeting function
+const handleUserLeftMeeting = (socketId) => {
+  console.log('Cleaning up for user who left:', socketId);
   
   // Remove remote stream
   setRemoteStreams(prev => {
     const newStreams = new Map(prev);
-    // Find and remove stream by userId (you might need to track userId->socketId mapping)
-    for (const [socketId, stream] of newStreams) {
-      // You'll need to implement a way to map socketId back to userId
-      // For now, we'll remove by socketId pattern
-      newStreams.delete(socketId);
-    }
+    newStreams.delete(socketId);
+    console.log(`Removed remote stream for ${socketId}`);
     return newStreams;
   });
   
-  // Close peer connection
-  setPeerConnections(prev => {
-    const newConnections = new Map(prev);
-    // Similar cleanup for peer connections
-    for (const [socketId, connection] of newConnections) {
-      // Clean up based on your userId->socketId mapping
-      connection.close();
+  // Close and remove peer connection
+  const peerConnection = peerConnectionsRef.current.get(socketId);
+  if (peerConnection) {
+    peerConnection.close();
+    peerConnectionsRef.current.delete(socketId);
+    
+    setPeerConnections(prev => {
+      const newConnections = new Map(prev);
       newConnections.delete(socketId);
-    }
-    return newConnections;
-  });
+      return newConnections;
+    });
+    
+    console.log(`Closed peer connection for ${socketId}`);
+  }
 };
 
 
-
 // Updated joinTeamMeeting function
 // Updated joinTeamMeeting function
+// FIXED: joinTeamMeeting function
 const joinTeamMeeting = async (meetingId) => {
   try {
     console.log('Joining meeting:', meetingId);
     
-    // Get user media
+    // Get user media with better constraints
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true
+      video: {
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
     });
+    
+    console.log('Got local stream:', stream.getTracks().map(t => t.kind));
+    
     setLocalStream(stream);
+    localStreamRef.current = stream;
     
     if (localVideoRef.current) {
       localVideoRef.current.srcObject = stream;
@@ -3004,7 +3075,7 @@ const joinTeamMeeting = async (meetingId) => {
     setShowMeetingInterface(true);
     setMeetingStartTime(new Date());
 
-    // FIXED: Add yourself to participants list immediately
+    // Add yourself to participants list immediately
     const selfParticipant = {
       id: profile._id,
       name: profile.name,
@@ -3017,6 +3088,7 @@ const joinTeamMeeting = async (meetingId) => {
 
     // Join meeting room via socket
     if (socket) {
+      console.log('Emitting join-meeting event');
       socket.emit('join-meeting', {
         meetingId,
         userId: profile._id,
@@ -3029,9 +3101,14 @@ const joinTeamMeeting = async (meetingId) => {
 
   } catch (error) {
     console.error('Failed to join meeting:', error);
-    showInlineNotification('Failed to join meeting. Please check camera/microphone permissions.', 'error');
+    if (error.name === 'NotAllowedError') {
+      showInlineNotification('Camera/microphone access denied. Please allow permissions and try again.', 'error');
+    } else {
+      showInlineNotification('Failed to join meeting. Please check your camera/microphone.', 'error');
+    }
   }
 };
+
 
 // Updated leaveTeamMeeting function
 const leaveTeamMeeting = async () => {
@@ -8105,199 +8182,94 @@ const requestSent = pendingRequests.some(req =>
        {/* Meeting Interface */}
 {/* Enhanced Meeting Interface */}
 {/* Professional Meeting Interface with Enhanced Screen Share Support */}
+{/* Replace the existing meeting interface section */}
 {showMeetingInterface && isInTeamMeeting && (
-  <div className="professionalMeetingInterfaceOverlay">
-    <div className="meetingInterfaceContainer">
-      {/* Meeting Header with Screen Share Status */}
-      <div className="meetingInterfaceHeader">
-        <h3>Team Meeting - {myTeam?.name}</h3>
-        {isScreenShareActive && screenShareParticipant && (
-          <div className="screenShareStatusIndicator">
-            <div className="screenShareStatusBadge">
-              <FaDesktop />
-              <span>
-                {screenShareParticipant.isLocal 
-                  ? 'You are sharing your screen' 
-                  : `${screenShareParticipant.name} is sharing screen`
-                }
+  <div className="meeting-interface-overlay">
+    <div className="meeting-container">
+      {/* Meeting Header */}
+      <div className="meeting-header">
+        <div className="meeting-info">
+          <h3>Team Meeting - {myTeam?.name}</h3>
+          <div className="meeting-stats">
+            <span className="participant-count">
+              <FaUsers /> {meetingParticipants.length} participant{meetingParticipants.length !== 1 ? 's' : ''}
+            </span>
+            {meetingStartTime && (
+              <span className="meeting-duration">
+                <FaClock /> {Math.floor((new Date() - meetingStartTime) / 60000)} min
               </span>
-            </div>
-          </div>
-        )}
-        <div className="meetingDurationDisplay">
-          {meetingStartTime && (
-            <span>{Math.floor((Date.now() - meetingStartTime) / 60000)} min</span>
-          )}
-        </div>
-      </div>
-
-      {/* Connection Quality Indicator */}
-      <div className="connectionQualityIndicator connectionStatusGood">
-        <div className="connectionStatusDot"></div>
-        <span>Excellent Connection</span>
-      </div>
-
-      {/* Professional Video Grid Layout with Screen Share Support */}
-      <div className={`professionalVideoGridLayout ${isScreenShareActive ? 'screenShareLayoutMode' : 'standardLayoutMode'}`}>
-        {/* Primary Video Display Area */}
-        {isScreenShareActive ? (
-          <div className="primaryVideoDisplayContainer screenShareActiveContainer">
-            {screenShareParticipant?.isLocal ? (
-              // Local Screen Share Display
-              <div className="screenShareVideoContainer localScreenShare">
-                <video
-                  ref={localVideoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className="participantVideoStream screenShareStream"
-                />
-                <div className="videoOverlayControlsPanel screenShareOverlay">
-                  <div className="participantIdentificationLabel">Your Screen</div>
-                  <div className="screenShareControlsPanel">
-                    <button
-                      className="stopScreenSharingButton"
-                      onClick={stopScreenShare}
-                      title="Stop sharing screen"
-                    >
-                      <FaDesktop />
-                      Stop Sharing
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              // Remote Screen Share Display
-              <div className="screenShareVideoContainer remoteScreenShare">
-                <div className="videoOverlayControlsPanel screenShareOverlay">
-                  <div className="participantIdentificationLabel">
-                    {screenShareParticipant?.name}'s Screen
-                  </div>
-                </div>
-              </div>
             )}
           </div>
-        ) : (
-          // Standard Local Video Display
-          <div className="participantVideoContainer localParticipantVideoContainer">
-            {localStream ? (
-              <video
-                ref={localVideoRef}
-                autoPlay
-                muted
-                playsInline
-                className="participantVideoStream localVideoStream"
-              />
-            ) : (
-              <div className="noVideoDisplayPlaceholder">
-                <div className="participantAvatarPlaceholder">
-                  {profile.name?.charAt(0)?.toUpperCase() || 'Y'}
-                </div>
-                <div className="participantNamePlaceholder">You</div>
-                <div className="participantConnectionStatus">
-                  {isCameraOff ? 'Camera Disabled' : 'Connecting...'}
-                </div>
-              </div>
-            )}
-            
-            <div className="videoOverlayControlsPanel">
-              <div className="participantIdentificationLabel">You (Meeting Host)</div>
-              <div className="participantStatusIndicatorsGroup">
-                {isMicMuted && (
-                  <div className="participantStatusBadge microphoneMutedBadge">
-                    <FaMicrophoneSlash />
-                    <span>Muted</span>
-                  </div>
-                )}
-                {isCameraOff && (
-                  <div className="participantStatusBadge cameraDisabledBadge">
-                    <FaVideoSlash />
-                    <span>Camera Off</span>
-                  </div>
-                )}
-                <div className="participantStatusBadge meetingHostBadge">
-                  <FaCrown />
-                  <span>Host</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Participants Display Area */}
-        <div className={`participantsDisplayArea ${isScreenShareActive ? 'sidebarParticipantsLayout' : 'gridParticipantsLayout'}`}>
-          {/* Local Video in Sidebar During Screen Share */}
-          {isScreenShareActive && !screenShareParticipant?.isLocal && (
-            <div className="participantVideoContainer localParticipantVideoContainer sidebarVideoSize">
-              <video
-                ref={localVideoRef}
-                autoPlay
-                muted
-                playsInline
-                className="participantVideoStream compactVideoStream"
-              />
-              <div className="videoOverlayControlsPanel compactOverlay">
-                <div className="participantIdentificationLabel">You</div>
-              </div>
-            </div>
-          )}
-
-          {/* Remote Participants Video Displays */}
-          {Array.from(remoteStreams.entries()).map(([socketId, stream]) => {
-            const participant = meetingParticipants.find(p => p.socketId === socketId);
-            return (
-              <div key={socketId} className={`participantVideoContainer remoteParticipantVideoContainer ${isScreenShareActive ? 'sidebarVideoSize' : 'standardVideoSize'}`}>
-                {stream ? (
-                  <video
-                    ref={el => {
-                      if (el && stream) {
-                        el.srcObject = stream;
-                      }
-                    }}
-                    autoPlay
-                    playsInline
-                    className={`participantVideoStream ${isScreenShareActive ? 'compactVideoStream' : 'standardVideoStream'}`}
-                  />
-                ) : (
-                  <div className="noVideoDisplayPlaceholder">
-                    <div className="participantAvatarPlaceholder">
-                      {participant?.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </div>
-                    <div className="participantNamePlaceholder">
-                      {participant?.name || 'Unknown Participant'}
-                    </div>
-                    <div className="participantConnectionStatus">Connecting...</div>
-                  </div>
-                )}
-                
-                <div className="videoOverlayControlsPanel">
-                  <div className="participantIdentificationLabel">
-                    {participant?.name || 'Unknown Participant'}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Available Participant Slots */}
-          {!isScreenShareActive && Array.from({ length: Math.max(0, 4 - 1 - remoteStreams.size) }).map((_, index) => (
-            <div key={`availableSlot-${index}`} className="participantVideoContainer availableParticipantSlot">
-              <div className="noVideoDisplayPlaceholder">
-                <div className="participantAvatarPlaceholder availableSlotIcon">
-                  <FaUserPlus />
-                </div>
-                <div className="participantNamePlaceholder">Waiting for participants...</div>
-                <div className="participantConnectionStatus">Available Slot</div>
-              </div>
-            </div>
-          ))}
         </div>
-      </div>
-
-      {/* Professional Meeting Controls Panel */}
-      <div className="professionalMeetingControlsPanel">
+        
         <button
-          className={`meetingControlButton microphoneControlButton ${isMicMuted ? 'controlButtonMuted' : 'controlButtonActive'}`}
+          className="minimize-meeting-btn"
+          onClick={() => setShowMeetingInterface(false)}
+          title="Minimize meeting"
+        >
+          −
+        </button>
+      </div>
+
+      {/* Video Grid */}
+      <div className="meeting-video-grid">
+        {/* Local Video */}
+        <div className="participant-video-container local-video">
+          <video
+            ref={localVideoRef}
+            autoPlay
+            muted
+            playsInline
+            className="participant-video"
+          />
+          <div className="video-overlay">
+            <span className="participant-name">You{isMicMuted && ' (Muted)'}</span>
+            {isCameraOff && <div className="camera-off-indicator">Camera Off</div>}
+          </div>
+        </div>
+
+        {/* Remote Videos */}
+        {Array.from(remoteStreams.entries()).map(([socketId, stream]) => {
+          const participant = meetingParticipants.find(p => p.socketId === socketId);
+          return (
+            <div key={socketId} className="participant-video-container remote-video">
+              <video
+                ref={el => {
+                  if (el && stream) {
+                    el.srcObject = stream;
+                    el.play().catch(console.error);
+                  }
+                }}
+                autoPlay
+                playsInline
+                className="participant-video"
+              />
+              <div className="video-overlay">
+                <span className="participant-name">
+                  {participant?.name || 'Unknown Participant'}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Empty slots for waiting participants */}
+        {meetingParticipants.length < 4 && Array.from({ 
+          length: Math.max(0, 4 - meetingParticipants.length - remoteStreams.size) 
+        }).map((_, index) => (
+          <div key={`empty-${index}`} className="participant-video-container empty-slot">
+            <div className="empty-slot-content">
+              <FaUserPlus className="empty-slot-icon" />
+              <span>Waiting for participants...</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Meeting Controls */}
+      <div className="meeting-controls">
+        <button
+          className={`control-btn mic-btn ${isMicMuted ? 'muted' : 'active'}`}
           onClick={toggleMicrophone}
           title={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
         >
@@ -8305,35 +8277,32 @@ const requestSent = pendingRequests.some(req =>
         </button>
 
         <button
-          className={`meetingControlButton cameraControlButton ${isCameraOff ? 'controlButtonDisabled' : 'controlButtonActive'}`}
+          className={`control-btn camera-btn ${isCameraOff ? 'off' : 'active'}`}
           onClick={toggleCamera}
           title={isCameraOff ? 'Turn on camera' : 'Turn off camera'}
         >
           {isCameraOff ? <FaVideoSlash /> : <FaVideo />}
         </button>
 
-        {/* Professional Screen Share Control */}
         <button
-          className={`meetingControlButton screenShareControlButton ${isScreenSharing ? 'controlButtonSharing' : 'controlButtonInactive'}`}
+          className={`control-btn screen-share-btn ${isScreenSharing ? 'sharing' : ''}`}
           onClick={isScreenSharing ? stopScreenShare : startScreenShare}
           title={isScreenSharing ? 'Stop screen sharing' : 'Share screen'}
-          disabled={isScreenShareActive && !screenShareParticipant?.isLocal}
         >
           <FaDesktop />
-          <span className="controlButtonLabel">
-            {isScreenSharing ? 'Stop Share' : 'Share Screen'}
-          </span>
         </button>
 
         <button
-          className="meetingControlButton settingsControlButton"
-          title="Meeting settings"
+          className="control-btn participants-btn"
+          onClick={() => setShowParticipants(!showParticipants)}
+          title="Show participants"
         >
-          <FaCog />
+          <FaUsers />
+          <span className="participant-count-badge">{meetingParticipants.length}</span>
         </button>
 
         <button
-          className="meetingControlButton leaveMeetingButton"
+          className="control-btn leave-btn"
           onClick={leaveTeamMeeting}
           title="Leave meeting"
         >
@@ -8341,22 +8310,29 @@ const requestSent = pendingRequests.some(req =>
         </button>
       </div>
 
-      {/* Participants Panel Toggle */}
-      <button
-        className="participantsPanelToggleButton"
-        onClick={() => setShowParticipants(!showParticipants)}
-        title="Show participants"
-      >
-        <FaUsers />
-        {meetingParticipants.length > 0 && (
-          <span className="participantCountIndicator">{meetingParticipants.length + 1}</span>
-        )}
-      </button>
+      {/* Participants Panel */}
+      {showParticipants && (
+        <div className="participants-panel">
+          <h4>Participants ({meetingParticipants.length})</h4>
+          <div className="participants-list">
+            {meetingParticipants.map(participant => (
+              <div key={participant.id} className="participant-item">
+                <div className="participant-avatar">
+                  {participant.name.charAt(0).toUpperCase()}
+                </div>
+                <span className="participant-name">
+                  {participant.name}
+                  {participant.id === profile._id && ' (You)'}
+                  {participant.isHost && ' (Host)'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   </div>
 )}
-
-
 
         {/* Error Display */}
         {chatError && (
