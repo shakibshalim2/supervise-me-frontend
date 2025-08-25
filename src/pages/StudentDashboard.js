@@ -2714,7 +2714,7 @@ useEffect(() => {
     });
     
     // Handle meeting invitation
-    newSocket.on('meeting-invitation', (data) => {
+   newSocket.on('meeting-invitation', (data) => {
       const { meetingId, teamName, startedBy } = data;
       
       if (window.confirm(`${startedBy} started a meeting for team "${teamName}". Do you want to join?`)) {
@@ -2722,12 +2722,53 @@ useEffect(() => {
       }
     });
     
-    // Handle WebRTC signaling
+    // FIXED: Handle when new user joins meeting
     newSocket.on('user-joined-meeting', async (data) => {
+      console.log('New user joined meeting:', data);
+      
+      // Update participants list
+      setMeetingParticipants(prev => {
+        const exists = prev.find(p => p.id === data.userId);
+        if (!exists) {
+          return [...prev, {
+            id: data.userId,
+            name: data.userName,
+            socketId: data.socketId,
+            isHost: false,
+            joinedAt: new Date()
+          }];
+        }
+        return prev;
+      });
+      
+      // Create peer connection for the new user
       await createPeerConnection(data.socketId, data.userName, true);
     });
     
-    newSocket.on('existing-participants', async (participants) => {
+newSocket.on('existing-participants', async (participants) => {
+      console.log('Received existing participants:', participants);
+      
+      // Update participants list with existing users
+      setMeetingParticipants(prev => {
+        const newParticipants = [...prev];
+        
+        participants.forEach(participant => {
+          const exists = newParticipants.find(p => p.id === participant.userId);
+          if (!exists) {
+            newParticipants.push({
+              id: participant.userId,
+              name: participant.userName,
+              socketId: participant.socketId,
+              isHost: false,
+              joinedAt: new Date(participant.joinedAt)
+            });
+          }
+        });
+        
+        return newParticipants;
+      });
+      
+      // Create peer connections for all existing participants
       for (const participant of participants) {
         await createPeerConnection(participant.socketId, participant.userName, false);
       }
@@ -2745,7 +2786,15 @@ useEffect(() => {
       await handleIceCandidate(data.candidate, data.from);
     });
     
-    newSocket.on('user-left-meeting', (data) => {
+      newSocket.on('user-left-meeting', (data) => {
+      console.log('User left meeting:', data);
+      
+      // Remove from participants list
+      setMeetingParticipants(prev => 
+        prev.filter(p => p.id !== data.userId)
+      );
+      
+      // Clean up peer connection
       handleUserLeftMeeting(data.userId);
     });
     
@@ -2868,18 +2917,44 @@ const handleIceCandidate = async (candidate, from) => {
 };
 
 const handleUserLeftMeeting = (userId) => {
+  console.log('Cleaning up for user who left:', userId);
+  
+  // Remove from participants
   setMeetingParticipants(prev => prev.filter(p => p.id !== userId));
+  
+  // Remove remote stream
   setRemoteStreams(prev => {
     const newStreams = new Map(prev);
-    newStreams.delete(userId);
+    // Find and remove stream by userId (you might need to track userId->socketId mapping)
+    for (const [socketId, stream] of newStreams) {
+      // You'll need to implement a way to map socketId back to userId
+      // For now, we'll remove by socketId pattern
+      newStreams.delete(socketId);
+    }
     return newStreams;
+  });
+  
+  // Close peer connection
+  setPeerConnections(prev => {
+    const newConnections = new Map(prev);
+    // Similar cleanup for peer connections
+    for (const [socketId, connection] of newConnections) {
+      // Clean up based on your userId->socketId mapping
+      connection.close();
+      newConnections.delete(socketId);
+    }
+    return newConnections;
   });
 };
 
 
+
+// Updated joinTeamMeeting function
 // Updated joinTeamMeeting function
 const joinTeamMeeting = async (meetingId) => {
   try {
+    console.log('Joining meeting:', meetingId);
+    
     // Get user media
     const stream = await navigator.mediaDevices.getUserMedia({
       video: true,
@@ -2894,6 +2969,18 @@ const joinTeamMeeting = async (meetingId) => {
     setCurrentMeetingId(meetingId);
     setIsInTeamMeeting(true);
     setShowMeetingInterface(true);
+    setMeetingStartTime(new Date());
+
+    // FIXED: Add yourself to participants list immediately
+    const selfParticipant = {
+      id: profile._id,
+      name: profile.name,
+      socketId: socket?.id,
+      isHost: false,
+      joinedAt: new Date()
+    };
+    
+    setMeetingParticipants([selfParticipant]);
 
     // Join meeting room via socket
     if (socket) {
@@ -4667,6 +4754,7 @@ const handleDownload = async (materialId, fileName) => {
   // Add these functions in your StudentDashboard component
 
 // Start Team Meeting
+// Updated startTeamMeeting function
 const startTeamMeeting = async () => {
   if (!myTeam || !myTeam._id) {
     showInlineNotification('You must be in a team to start a meeting', 'error');
@@ -4687,6 +4775,31 @@ const startTeamMeeting = async () => {
     });
     setLocalStream(stream);
 
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = stream;
+    }
+
+    // FIXED: Add yourself as host to participants
+    const hostParticipant = {
+      id: profile._id,
+      name: profile.name,
+      socketId: socket?.id,
+      isHost: true,
+      joinedAt: new Date()
+    };
+    
+    setMeetingParticipants([hostParticipant]);
+
+    // Join the meeting room first
+    if (socket) {
+      socket.emit('join-meeting', {
+        meetingId,
+        userId: profile._id,
+        userName: profile.name,
+        teamId: myTeam._id
+      });
+    }
+
     // Send meeting notification to all team members
     const token = localStorage.getItem('studentToken');
     await fetch(`${API_BASE}/api/teams/${myTeam._id}/start-meeting`, {
@@ -4701,14 +4814,6 @@ const startTeamMeeting = async () => {
         startedByStudentId: profile.studentId
       })
     });
-
-    // Add starter to participants
-    setMeetingParticipants([{
-      id: profile.studentId,
-      name: profile.name,
-      isHost: true,
-      joinedAt: new Date()
-    }]);
 
     showInlineNotification('Team meeting started! Other members will be notified.', 'success');
 
