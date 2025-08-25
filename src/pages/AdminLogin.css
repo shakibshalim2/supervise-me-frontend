@@ -1,0 +1,710 @@
+/* ===================================== */
+/* ==  SLIGHTLY STYLISH LOGIN DESIGN  == */
+/* ===================================== */
+
+/* CSS Variables - Professional with Style */
+:root {
+  /* Enhanced Color Palette */
+  --color-primary: #3b82f6;
+  --color-primary-dark: #2563eb;
+  --color-primary-light: #60a5fa;
+  --color-accent: #8b5cf6;
+  --color-gray-50: #f8fafc;
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #e2e8f0;
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1e293b;
+  --color-gray-900: #0f172a;
+  --color-white: #ffffff;
+  --color-red: #ef4444;
+  --color-red-light: #fef2f2;
+  --color-green: #10b981;
+  --color-green-light: #f0fdf4;
+  
+  /* Typography */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  
+  /* Spacing */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.25rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-10: 2.5rem;
+  --spacing-12: 3rem;
+  
+  /* Enhanced Border & Shadow */
+  --border-radius: 0.75rem;
+  --border-radius-lg: 1rem;
+  --border-radius-xl: 1.25rem;
+  --border-width: 1px;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-colored: 0 10px 15px -3px rgba(59, 130, 246, 0.1), 0 4px 6px -2px rgba(59, 130, 246, 0.05);
+  
+  /* Transitions */
+  --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Reset & Base Styles */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  color: var(--color-gray-900);
+  background: linear-gradient(135deg, var(--color-gray-50) 0%, var(--color-gray-100) 100%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===================================== */
+/* ==   STYLISH MAIN CONTAINER        == */
+/* ===================================== */
+.admin-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-4);
+  background: linear-gradient(135deg, 
+    var(--color-gray-50) 0%, 
+    var(--color-gray-100) 50%, 
+    var(--color-primary-light) 100%
+  );
+  background-size: 400% 400%;
+  animation: gradientShift 10s ease infinite;
+  position: relative;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Subtle pattern overlay */
+.admin-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.03) 0%, transparent 50%);
+  background-size: 200px 200px;
+  pointer-events: none;
+}
+
+/* ===================================== */
+/* ==   ENHANCED OVERLAY WRAPPER      == */
+/* ===================================== */
+.admin-overlay {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-xl), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  border: var(--border-width) solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  animation: slideUp 0.6s var(--transition-spring);
+  position: relative;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Subtle glass effect */
+.admin-overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+}
+
+/* ===================================== */
+/* ==   STYLISH LOGIN CARD            == */
+/* ===================================== */
+.admin-card {
+  padding: var(--spacing-10) var(--spacing-8);
+  position: relative;
+}
+
+/* Decorative corner accent */
+.admin-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-accent));
+  opacity: 0.1;
+  border-radius: 0 var(--border-radius-xl) 0 100%;
+}
+
+/* ===================================== */
+/* ==   ENHANCED HEADER STYLING       == */
+/* ===================================== */
+.admin-card h2 {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--color-gray-900), var(--color-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+  margin-bottom: var(--spacing-2);
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+/* Subtitle */
+.admin-card h2::after {
+  content: 'Secure Access Portal';
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-gray-500);
+  margin-top: var(--spacing-2);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  -webkit-text-fill-color: var(--color-gray-500);
+}
+
+/* Decorative underline */
+.admin-card h2::before {
+  content: '';
+  position: absolute;
+  bottom: -var(--spacing-6);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  border-radius: 2px;
+}
+
+/* ===================================== */
+/* ==   STYLISH ERROR MESSAGE        == */
+/* ===================================== */
+.error-message {
+  background: linear-gradient(135deg, var(--color-red-light), #fef7f7);
+  color: var(--color-red);
+  padding: var(--spacing-4) var(--spacing-5);
+  border-radius: var(--border-radius);
+  border: var(--border-width) solid #fca5a5;
+  margin-bottom: var(--spacing-6);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-align: center;
+  animation: errorFadeIn 0.4s var(--transition-spring);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+.error-message::before {
+  content: '⚠';
+  margin-right: var(--spacing-2);
+  font-size: var(--font-size-base);
+}
+
+@keyframes errorFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ===================================== */
+/* ==   ENHANCED FORM STYLING         == */
+/* ===================================== */
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  margin-top: var(--spacing-8);
+}
+
+/* ===================================== */
+/* ==   STYLISH INPUT STYLING         == */
+/* ===================================== */
+.admin-input {
+  width: 100%;
+  height: 52px;
+  padding: var(--spacing-4) var(--spacing-5);
+  border: 2px solid var(--color-gray-200);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-base);
+  font-weight: 400;
+  color: var(--color-gray-900);
+  background: linear-gradient(135deg, var(--color-white), #fefefe);
+  transition: var(--transition-smooth);
+  outline: none;
+  font-family: inherit;
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-input::placeholder {
+  color: var(--color-gray-400);
+  transition: var(--transition-fast);
+}
+
+.admin-input:hover:not(:focus):not(:disabled) {
+  border-color: var(--color-gray-300);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.admin-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-colored);
+  transform: translateY(-2px);
+  background: var(--color-white);
+}
+
+.admin-input:focus::placeholder {
+  color: var(--color-gray-300);
+  transform: translateX(4px);
+}
+
+.admin-input:disabled {
+  background: linear-gradient(135deg, var(--color-gray-100), var(--color-gray-50));
+  color: var(--color-gray-500);
+  cursor: not-allowed;
+  border-color: var(--color-gray-200);
+  transform: none;
+  box-shadow: none;
+}
+
+/* ===================================== */
+/* ==   STYLISH BUTTON DESIGN         == */
+/* ===================================== */
+.admin-button {
+  width: 100%;
+  height: 52px;
+  padding: var(--spacing-4) var(--spacing-5);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: var(--color-white);
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  outline: none;
+  font-family: inherit;
+  margin-top: var(--spacing-3);
+  box-shadow: var(--shadow-colored);
+  position: relative;
+  overflow: hidden;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+/* Button shimmer effect */
+.admin-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.6s;
+}
+
+.admin-button:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+.admin-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--color-primary-dark), #1e40af);
+  transform: translateY(-2px);
+  box-shadow: 0 15px 25px -5px rgba(59, 130, 246, 0.2), 0 8px 10px -5px rgba(59, 130, 246, 0.1);
+}
+
+.admin-button:focus:not(:disabled) {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2), var(--shadow-colored);
+}
+
+.admin-button:active:not(:disabled) {
+  transform: translateY(0);
+  background: linear-gradient(135deg, #1e40af, #1e3a8a);
+}
+
+.admin-button:disabled {
+  background: linear-gradient(135deg, var(--color-gray-300), var(--color-gray-400));
+  color: var(--color-gray-500);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+/* Enhanced loading spinner */
+.admin-button:disabled::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--color-gray-400);
+  border-top: 2px solid var(--color-gray-500);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  right: var(--spacing-5);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+@keyframes spin {
+  0% { transform: translateY(-50%) rotate(0deg); }
+  100% { transform: translateY(-50%) rotate(360deg); }
+}
+
+/* ===================================== */
+/* ==   ADDITIONAL STYLISH ELEMENTS   == */
+/* ===================================== */
+
+/* Floating label effect (optional) */
+.input-group {
+  position: relative;
+  margin-bottom: var(--spacing-6);
+}
+
+.floating-label {
+  position: absolute;
+  top: 50%;
+  left: var(--spacing-5);
+  transform: translateY(-50%);
+  color: var(--color-gray-400);
+  font-size: var(--font-size-base);
+  pointer-events: none;
+  transition: var(--transition-smooth);
+  background: var(--color-white);
+  padding: 0 var(--spacing-1);
+  border-radius: var(--spacing-1);
+}
+
+.admin-input:focus + .floating-label,
+.admin-input:not(:placeholder-shown) + .floating-label {
+  top: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  font-weight: 500;
+  transform: translateY(-50%);
+}
+
+/* Success notification */
+.success-message {
+  background: linear-gradient(135deg, var(--color-green-light), #f0fdf8);
+  color: var(--color-green);
+  padding: var(--spacing-4) var(--spacing-5);
+  border-radius: var(--border-radius);
+  border: var(--border-width) solid #a7f3d0;
+  margin-bottom: var(--spacing-6);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-align: center;
+  animation: successFadeIn 0.4s var(--transition-spring);
+  box-shadow: var(--shadow-sm);
+}
+
+.success-message::before {
+  content: '✓';
+  margin-right: var(--spacing-2);
+  font-size: var(--font-size-base);
+}
+
+/* Security badge */
+.security-indicator {
+  position: absolute;
+  bottom: var(--spacing-4);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--color-gray-400);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.security-indicator::before {
+  content: '🔒';
+  font-size: var(--font-size-sm);
+}
+
+/* ===================================== */
+/* ==   RESPONSIVE DESIGN             == */
+/* ===================================== */
+
+/* Large Tablet */
+@media (max-width: 1024px) {
+  .admin-overlay {
+    max-width: 400px;
+  }
+  
+  .admin-card {
+    padding: var(--spacing-8) var(--spacing-6);
+  }
+}
+
+/* Tablet */
+@media (max-width: 768px) {
+  .admin-container {
+    padding: var(--spacing-3);
+  }
+  
+  .admin-card {
+    padding: var(--spacing-6) var(--spacing-5);
+  }
+  
+  .admin-card h2 {
+    font-size: var(--font-size-2xl);
+    margin-bottom: var(--spacing-2);
+  }
+  
+  .admin-form {
+    gap: var(--spacing-5);
+    margin-top: var(--spacing-6);
+  }
+  
+  .admin-input,
+  .admin-button {
+    height: 48px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .admin-container {
+    padding: var(--spacing-2);
+  }
+  
+  .admin-overlay {
+    max-width: none;
+    border-radius: var(--border-radius-lg);
+  }
+  
+  .admin-card {
+    padding: var(--spacing-5) var(--spacing-4);
+  }
+  
+  .admin-card h2 {
+    font-size: var(--font-size-xl);
+    margin-bottom: var(--spacing-2);
+  }
+  
+  .admin-card h2::after {
+    font-size: var(--font-size-xs);
+  }
+  
+  .admin-input,
+  .admin-button {
+    height: 44px;
+    font-size: var(--font-size-sm);
+  }
+  
+  .admin-form {
+    gap: var(--spacing-4);
+    margin-top: var(--spacing-5);
+  }
+  
+  .error-message,
+  .success-message {
+    padding: var(--spacing-3) var(--spacing-4);
+    font-size: var(--font-size-xs);
+  }
+}
+
+/* Very Small Mobile */
+@media (max-width: 360px) {
+  .admin-card {
+    padding: var(--spacing-4) var(--spacing-3);
+  }
+  
+  .admin-card h2 {
+    font-size: var(--font-size-lg);
+  }
+  
+  .admin-input,
+  .admin-button {
+    height: 40px;
+    padding: var(--spacing-3);
+  }
+}
+
+/* ===================================== */
+/* ==   ACCESSIBILITY & ENHANCEMENTS  == */
+/* ===================================== */
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .admin-overlay {
+    border: 2px solid var(--color-gray-900);
+    background: var(--color-white);
+  }
+  
+  .admin-input {
+    border: 2px solid var(--color-gray-600);
+  }
+  
+  .admin-input:focus {
+    border: 2px solid var(--color-primary);
+  }
+  
+  .admin-button {
+    border: 2px solid var(--color-primary);
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .admin-container {
+    animation: none;
+    background: linear-gradient(135deg, var(--color-gray-50), var(--color-gray-100));
+  }
+}
+
+/* Focus Indicators for Keyboard Navigation */
+.admin-input:focus-visible,
+.admin-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ===================================== */
+/* ==   VALIDATION STATES             == */
+/* ===================================== */
+
+/* Success State */
+.admin-input.success {
+  border-color: var(--color-green);
+  background: linear-gradient(135deg, var(--color-green-light), var(--color-white));
+}
+
+.admin-input.success:focus {
+  border-color: var(--color-green);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+/* Error State */
+.admin-input.error {
+  border-color: var(--color-red);
+  background: linear-gradient(135deg, var(--color-red-light), var(--color-white));
+}
+
+.admin-input.error:focus {
+  border-color: var(--color-red);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* Field validation messages */
+.field-error {
+  color: var(--color-red);
+  font-size: var(--font-size-xs);
+  margin-top: var(--spacing-2);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.field-error::before {
+  content: '⚠';
+  font-size: var(--font-size-sm);
+}
+
+.field-success {
+  color: var(--color-green);
+  font-size: var(--font-size-xs);
+  margin-top: var(--spacing-2);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.field-success::before {
+  content: '✓';
+  font-size: var(--font-size-sm);
+}
+
+/* ===================================== */
+/* ==   PRINT STYLES                  == */
+/* ===================================== */
+@media print {
+  body {
+    background: white;
+  }
+  
+  .admin-container {
+    background: white;
+  }
+  
+  .admin-overlay {
+    box-shadow: none;
+    border: 1px solid var(--color-gray-900);
+    background: white;
+  }
+  
+  .admin-button {
+    background: var(--color-gray-900);
+    color: white;
+  }
+  
+  .admin-card h2 {
+    -webkit-text-fill-color: var(--color-gray-900);
+    color: var(--color-gray-900);
+  }
+}
