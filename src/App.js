@@ -20,8 +20,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/admin" element={<AdminLogin />} />
+        <Route path="/" element={<AdminLogin />} />
         <Route element={<ProtectedRoute />}>
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
         </Route>
