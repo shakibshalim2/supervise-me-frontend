@@ -4,7 +4,7 @@ import "./FacultyDashboard.css";
 import { CircularProgressbar } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck, faClipboardList, faCrown, faEdit, faExclamationTriangle, faEye, faEyeSlash, faInfoCircle, faSpinner, faSync, faTimes, faTrashAlt, faUndo, faUserMinus } from "@fortawesome/free-solid-svg-icons";
+import { faCalendar, faCheck, faClipboardList, faClock, faCrown, faDesktop, faEdit, faExclamationTriangle, faEye, faEyeSlash, faInfoCircle, faSpinner, faSync, faTimes, faTrashAlt, faUndo, faUserGraduate, faUserMinus, faUsers, faVideo } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 import FacultyDeliverables from './FacultyDeliverables';
 
@@ -4731,6 +4731,448 @@ const createCustomMilestone = async () => {
 }
 
 
+// Add this component to FacultyDashboard.js
+
+// Add this component to FacultyDashboard.js
+// Add this component to FacultyDashboard.js
+function MeetingScheduler() {
+  const [supervisedTeams, setSupervisedTeams] = useState([]);
+  const [scheduledMeetings, setScheduledMeetings] = useState([]);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [meetingForm, setMeetingForm] = useState({
+    teamId: '',
+    title: '',
+    description: '',
+    scheduledDateTime: '',
+    duration: 60
+  });
+  const [formErrors, setFormErrors] = useState({});
+
+  // Load supervised teams
+  const loadSupervisedTeams = async () => {
+    try {
+      const token = localStorage.getItem('facultyToken');
+      const response = await fetch(`${API_BASE}/api/faculty/supervised-teams`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSupervisedTeams(data.teams || []);
+      }
+    } catch (error) {
+      console.error('Error loading supervised teams:', error);
+    }
+  };
+
+  // Load scheduled meetings
+  const loadScheduledMeetings = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('facultyToken');
+      const response = await fetch(`${API_BASE}/api/faculty/meetings`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setScheduledMeetings(data.meetings || []);
+      }
+    } catch (error) {
+      console.error('Error loading meetings:', error);
+      showMessage('Failed to load meetings', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Schedule meeting
+  const handleScheduleMeeting = async (e) => {
+    e.preventDefault();
+    
+    // Validation
+    const errors = {};
+    if (!meetingForm.teamId) errors.teamId = 'Please select a team';
+    if (!meetingForm.title.trim()) errors.title = 'Meeting title is required';
+    if (!meetingForm.scheduledDateTime) errors.scheduledDateTime = 'Date and time are required';
+    
+    // Check if date is in the future
+    const scheduledDate = new Date(meetingForm.scheduledDateTime);
+    if (scheduledDate <= new Date()) {
+      errors.scheduledDateTime = 'Meeting must be scheduled for a future date and time';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    setIsScheduling(true);
+    try {
+      const token = localStorage.getItem('facultyToken');
+      const response = await fetch(`${API_BASE}/api/faculty/meetings/schedule`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(meetingForm)
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        showMessage(data.message, 'success');
+        setShowScheduleModal(false);
+        setMeetingForm({
+          teamId: '',
+          title: '',
+          description: '',
+          scheduledDateTime: '',
+          duration: 60
+        });
+        setFormErrors({});
+        loadScheduledMeetings();
+      } else {
+        showMessage(data.message || 'Failed to schedule meeting', 'error');
+      }
+    } catch (error) {
+      console.error('Schedule meeting error:', error);
+      showMessage('Network error: Failed to schedule meeting', 'error');
+    } finally {
+      setIsScheduling(false);
+    }
+  };
+
+  // Format date for display
+  const formatMeetingDateTime = (dateTime) => {
+    return new Date(dateTime).toLocaleString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
+  };
+
+  // Get minimum datetime for input (current time + 1 hour)
+  const getMinDateTime = () => {
+    const now = new Date();
+    now.setHours(now.getHours() + 1);
+    return now.toISOString().slice(0, 16);
+  };
+
+  useEffect(() => {
+    loadSupervisedTeams();
+    loadScheduledMeetings();
+  }, []);
+
+  return (
+    <div className="faculty-meeting-scheduler-main-container">
+      <div className="faculty-meeting-scheduler-header-section">
+        <div className="faculty-meeting-scheduler-title-area">
+          <h2 className="faculty-meeting-scheduler-main-title">Team Meetings</h2>
+          <p className="faculty-meeting-scheduler-subtitle">Schedule and manage meetings with your supervised teams</p>
+        </div>
+        
+        <div className="faculty-meeting-scheduler-header-actions">
+          <button
+            className="faculty-meeting-scheduler-schedule-btn"
+            onClick={() => setShowScheduleModal(true)}
+            disabled={supervisedTeams.length === 0}
+          >
+            <FontAwesomeIcon icon={faCalendar} />
+            Schedule Meeting
+          </button>
+          
+          <button
+            className="faculty-meeting-scheduler-refresh-btn"
+            onClick={loadScheduledMeetings}
+          >
+            <FontAwesomeIcon icon={faSync} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Supervised Teams Summary */}
+      <div className="faculty-meeting-scheduler-teams-summary">
+        <h3 className="faculty-meeting-scheduler-teams-title">Your Supervised Teams ({supervisedTeams.length})</h3>
+        <div className="faculty-meeting-scheduler-teams-grid">
+          {supervisedTeams.map(team => (
+            <div key={team._id} className="faculty-meeting-scheduler-team-card">
+              <div className="faculty-meeting-scheduler-team-card-header">
+                <h4 className="faculty-meeting-scheduler-team-name">{team.name}</h4>
+                <span className="faculty-meeting-scheduler-phase-badge">Phase {team.currentPhase || 'A'}</span>
+              </div>
+              <div className="faculty-meeting-scheduler-team-info">
+                <span className="faculty-meeting-scheduler-team-stat">👥 {team.members?.length || 0} members</span>
+                <span className="faculty-meeting-scheduler-team-stat">📚 {team.major}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {supervisedTeams.length === 0 && (
+          <div className="faculty-meeting-scheduler-no-teams">
+            <div className="faculty-meeting-scheduler-empty-icon">📅</div>
+            <h4 className="faculty-meeting-scheduler-empty-title">No Supervised Teams</h4>
+            <p className="faculty-meeting-scheduler-empty-text">You don't have any supervised teams yet.</p>
+            <p className="faculty-meeting-scheduler-empty-subtext">Accept supervision requests to start scheduling meetings.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Scheduled Meetings */}
+      <div className="faculty-meeting-scheduler-meetings-section">
+        <h3 className="faculty-meeting-scheduler-meetings-title">Scheduled Meetings ({scheduledMeetings.length})</h3>
+        
+        {isLoading ? (
+          <div className="faculty-meeting-scheduler-loading">
+            <FontAwesomeIcon icon={faSpinner} className="faculty-meeting-scheduler-spinner" />
+            <span className="faculty-meeting-scheduler-loading-text">Loading meetings...</span>
+          </div>
+        ) : scheduledMeetings.length === 0 ? (
+          <div className="faculty-meeting-scheduler-no-meetings">
+            <FontAwesomeIcon icon={faCalendar} className="faculty-meeting-scheduler-empty-calendar" />
+            <h4 className="faculty-meeting-scheduler-no-meetings-title">No meetings scheduled</h4>
+            <p className="faculty-meeting-scheduler-no-meetings-text">Schedule your first team meeting to get started.</p>
+          </div>
+        ) : (
+          <div className="faculty-meeting-scheduler-meetings-list">
+            {scheduledMeetings.map(meeting => (
+              <div key={meeting.meetingId} className="faculty-meeting-scheduler-meeting-card">
+                <div className="faculty-meeting-scheduler-meeting-card-header">
+                  <h4 className="faculty-meeting-scheduler-meeting-title">{meeting.title}</h4>
+                  <div className="faculty-meeting-scheduler-meeting-actions">
+                    <span className={`faculty-meeting-scheduler-status-badge status-${meeting.status}`}>
+                      {meeting.status}
+                    </span>
+                    <button
+                      className="faculty-meeting-scheduler-copy-btn"
+                      onClick={() => {
+                        navigator.clipboard.writeText(meeting.meetingLink);
+                        showMessage('Meeting link copied!', 'success');
+                      }}
+                      title="Copy meeting link"
+                    >
+                      <FontAwesomeIcon icon={faClipboardList} />
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="faculty-meeting-scheduler-meeting-details">
+                  <div className="faculty-meeting-scheduler-info-row">
+                    <FontAwesomeIcon icon={faUsers} className="faculty-meeting-scheduler-info-icon" />
+                    <span className="faculty-meeting-scheduler-info-text">Team: {meeting.teamName}</span>
+                  </div>
+                  <div className="faculty-meeting-scheduler-info-row">
+                    <FontAwesomeIcon icon={faCalendar} className="faculty-meeting-scheduler-info-icon" />
+                    <span className="faculty-meeting-scheduler-info-text">{formatMeetingDateTime(meeting.scheduledDateTime)}</span>
+                  </div>
+                  <div className="faculty-meeting-scheduler-info-row">
+                    <FontAwesomeIcon icon={faClock} className="faculty-meeting-scheduler-info-icon" />
+                    <span className="faculty-meeting-scheduler-info-text">{meeting.duration} minutes</span>
+                  </div>
+                  <div className="faculty-meeting-scheduler-info-row">
+                    <FontAwesomeIcon icon={faDesktop} className="faculty-meeting-scheduler-info-icon" />
+                    <span className="faculty-meeting-scheduler-info-text">Room ID: <code className="faculty-meeting-scheduler-room-code">{meeting.roomId}</code></span>
+                  </div>
+                  <div className="faculty-meeting-scheduler-info-row">
+                    <FontAwesomeIcon icon={faUserGraduate} className="faculty-meeting-scheduler-info-icon" />
+                    <span className="faculty-meeting-scheduler-info-text">{meeting.attendees?.length || 0} attendees invited</span>
+                  </div>
+                </div>
+                
+                {meeting.description && (
+                  <div className="faculty-meeting-scheduler-meeting-description">
+                    <strong className="faculty-meeting-scheduler-description-label">Description:</strong>
+                    <p className="faculty-meeting-scheduler-description-text">{meeting.description}</p>
+                  </div>
+                )}
+                
+                <div className="faculty-meeting-scheduler-meeting-footer">
+                  <a
+                    href={meeting.meetingLink}
+                    className="faculty-meeting-scheduler-join-btn"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <FontAwesomeIcon icon={faVideo} />
+                    Join Meeting
+                  </a>
+                  
+                  <div className="faculty-meeting-scheduler-meeting-link">
+                    <small className="faculty-meeting-scheduler-link-label">
+                      <strong>Link:</strong> 
+                      <a 
+                        href={meeting.meetingLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="faculty-meeting-scheduler-link-url"
+                      >
+                        {meeting.meetingLink}
+                      </a>
+                    </small>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Schedule Meeting Modal */}
+      {showScheduleModal && (
+        <div className="faculty-meeting-scheduler-modal-overlay" onClick={() => setShowScheduleModal(false)}>
+          <div className="faculty-meeting-scheduler-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="faculty-meeting-scheduler-modal-header">
+              <h3 className="faculty-meeting-scheduler-modal-title">Schedule Team Meeting</h3>
+              <button 
+                className="faculty-meeting-scheduler-close-btn"
+                onClick={() => setShowScheduleModal(false)}
+              >
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+
+
+<form onSubmit={handleScheduleMeeting} className="faculty-meeting-scheduler-form">
+  <div className="faculty-meeting-scheduler-form-group">
+    <label className="faculty-meeting-scheduler-form-label">Select Team *</label>
+    <select
+      value={meetingForm.teamId}
+      onChange={(e) => {
+        setMeetingForm({ ...meetingForm, teamId: e.target.value });
+        if (formErrors.teamId) setFormErrors({ ...formErrors, teamId: '' });
+      }}
+      className={`faculty-meeting-scheduler-form-select ${formErrors.teamId ? 'error' : ''}`}
+    >
+      <option value="">Choose a team...</option>
+      {supervisedTeams.map(team => (
+        <option key={team._id} value={team._id}>
+          {team.name} ({team.members?.length || 0} members)
+        </option>
+      ))}
+    </select>
+    {formErrors.teamId && <span className="faculty-meeting-scheduler-error-message">{formErrors.teamId}</span>}
+  </div>
+
+  <div className="faculty-meeting-scheduler-form-group">
+    <label className="faculty-meeting-scheduler-form-label">Meeting Title *</label>
+    <input
+      type="text"
+      value={meetingForm.title}
+      onChange={(e) => {
+        setMeetingForm({ ...meetingForm, title: e.target.value });
+        if (formErrors.title) setFormErrors({ ...formErrors, title: '' });
+      }}
+      placeholder="e.g., Phase A Review Meeting"
+      className={`faculty-meeting-scheduler-form-input ${formErrors.title ? 'error' : ''}`}
+    />
+    {formErrors.title && <span className="faculty-meeting-scheduler-error-message">{formErrors.title}</span>}
+  </div>
+
+  {/* NEW: Meeting Link Input */}
+  <div className="faculty-meeting-scheduler-form-group">
+    <label className="faculty-meeting-scheduler-form-label">Meeting Link *</label>
+    <input
+      type="url"
+      value={meetingForm.meetingLink || ''}
+      onChange={(e) => {
+        setMeetingForm({ ...meetingForm, meetingLink: e.target.value });
+        if (formErrors.meetingLink) setFormErrors({ ...formErrors, meetingLink: '' });
+      }}
+      placeholder="https://meet.google.com/xxx-xxx-xxx or https://zoom.us/j/xxxxxxxxx"
+      className={`faculty-meeting-scheduler-form-input ${formErrors.meetingLink ? 'error' : ''}`}
+    />
+    {formErrors.meetingLink && <span className="faculty-meeting-scheduler-error-message">{formErrors.meetingLink}</span>}
+    <small className="faculty-meeting-scheduler-form-help">
+      Provide your Google Meet, Zoom, or any other meeting platform link
+    </small>
+  </div>
+
+  <div className="faculty-meeting-scheduler-form-group">
+    <label className="faculty-meeting-scheduler-form-label">Description (Optional)</label>
+    <textarea
+      value={meetingForm.description}
+      onChange={(e) => setMeetingForm({ ...meetingForm, description: e.target.value })}
+      placeholder="Meeting agenda, topics to discuss, etc."
+      rows="3"
+      className="faculty-meeting-scheduler-form-textarea"
+    />
+  </div>
+
+  <div className="faculty-meeting-scheduler-form-row">
+    <div className="faculty-meeting-scheduler-form-group">
+      <label className="faculty-meeting-scheduler-form-label">Date & Time *</label>
+      <input
+        type="datetime-local"
+        value={meetingForm.scheduledDateTime}
+        onChange={(e) => {
+          setMeetingForm({ ...meetingForm, scheduledDateTime: e.target.value });
+          if (formErrors.scheduledDateTime) setFormErrors({ ...formErrors, scheduledDateTime: '' });
+        }}
+        min={getMinDateTime()}
+        className={`faculty-meeting-scheduler-form-input ${formErrors.scheduledDateTime ? 'error' : ''}`}
+      />
+      {formErrors.scheduledDateTime && <span className="faculty-meeting-scheduler-error-message">{formErrors.scheduledDateTime}</span>}
+    </div>
+
+    <div className="faculty-meeting-scheduler-form-group">
+      <label className="faculty-meeting-scheduler-form-label">Duration (minutes)</label>
+      <select
+        value={meetingForm.duration}
+        onChange={(e) => setMeetingForm({ ...meetingForm, duration: parseInt(e.target.value) })}
+        className="faculty-meeting-scheduler-form-select"
+      >
+        <option value={30}>30 minutes</option>
+        <option value={45}>45 minutes</option>
+        <option value={60}>1 hour</option>
+        <option value={90}>1.5 hours</option>
+        <option value={120}>2 hours</option>
+      </select>
+    </div>
+  </div>
+
+
+              <div className="faculty-meeting-scheduler-modal-footer">
+                <button
+                  type="button"
+                  className="faculty-meeting-scheduler-cancel-btn"
+                  onClick={() => setShowScheduleModal(false)}
+                  disabled={isScheduling}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="faculty-meeting-scheduler-submit-btn"
+                  disabled={isScheduling || supervisedTeams.length === 0}
+                >
+                  {isScheduling ? (
+                    <>
+                      <FontAwesomeIcon icon={faSpinner} className="faculty-meeting-scheduler-spinner" />
+                      Scheduling...
+                    </>
+                  ) : (
+                    <>
+                      <FontAwesomeIcon icon={faCalendar} />
+                      Schedule Meeting
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 
   function MeetingsPage() {
     const [showScheduleForm, setShowScheduleForm] = useState(false);
@@ -5003,10 +5445,6 @@ return (
         <div className="profile-titles">
           <h1 className="profile-name">{profile?.name}</h1>
           <p className="profile-title">{profile?.role}</p>
-          <div className="status-indicator">
-            <span className="status-dot"></span>
-            <span className="status-text">{profile?.status}</span>
-          </div>
         </div>
       </div>
     <div className="profile-grid">
@@ -7843,6 +8281,13 @@ const fetchTickets = async () => {
             <MaterialsUpload />
           </div>
         );
+
+        case "meeting":
+  return (
+    <div className="content-box">
+      <MeetingScheduler />
+    </div>
+  );
 
         case "deliverables":
   return (

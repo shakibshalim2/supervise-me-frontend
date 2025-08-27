@@ -21776,3 +21776,461 @@ h1, h2, h3, h4, h5, h6 {
     display: none !important;
   }
 }
+/* end */
+/* meeting page design */
+/* Student Meetings Component - Formal Light Design */
+
+.student-meetings-main-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  background-color: #fafbfc;
+  min-height: 100vh;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.student-meetings-header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.student-meetings-title-group {
+  flex: 1;
+}
+
+.student-meetings-main-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.025em;
+}
+
+.student-meetings-subtitle {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.student-meetings-refresh-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.student-meetings-refresh-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.student-meetings-refresh-icon {
+  font-size: 14px;
+}
+
+.student-meetings-refresh-text {
+  font-size: 14px;
+}
+
+/* Loading State */
+.student-meetings-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  text-align: center;
+}
+
+.student-meetings-loading-spinner {
+  font-size: 2rem;
+  color: #3b82f6;
+  margin-bottom: 16px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.student-meetings-loading-text {
+  font-size: 1.1rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Empty State */
+.student-meetings-empty-state {
+  text-align: center;
+  padding: 80px 24px;
+  background: white;
+  border-radius: 12px;
+  border: 2px dashed #d1d5db;
+  margin: 20px 0;
+}
+
+.student-meetings-empty-icon-wrapper {
+  margin-bottom: 24px;
+}
+
+.student-meetings-empty-icon {
+  font-size: 4rem;
+  color: #d1d5db;
+}
+
+.student-meetings-empty-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 12px 0;
+}
+
+.student-meetings-empty-description {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.6;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Meetings Grid */
+.student-meetings-grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+
+/* Meeting Cards */
+.student-meetings-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  overflow: hidden;
+  position: relative;
+}
+
+.student-meetings-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border-color: #3b82f6;
+}
+
+.student-meetings-card--live {
+  border-left: 4px solid #10b981;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+}
+
+.student-meetings-card--upcoming {
+  border-left: 4px solid #3b82f6;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.student-meetings-card--ended {
+  border-left: 4px solid #6b7280;
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  opacity: 0.9;
+}
+
+/* Card Header */
+.student-meetings-card-header {
+  padding: 20px 24px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.student-meetings-card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  line-height: 1.4;
+  flex: 1;
+  margin-right: 16px;
+}
+
+.student-meetings-badge-container {
+  display: flex;
+  gap: 8px;
+}
+
+.student-meetings-status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.student-meetings-status-badge--live {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.student-meetings-status-badge--upcoming {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}
+
+.student-meetings-status-badge--ended {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+
+/* Card Body */
+.student-meetings-card-body {
+  padding: 20px 24px;
+}
+
+.student-meetings-info-grid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.student-meetings-info-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.student-meetings-info-icon {
+  font-size: 1rem;
+  color: #3b82f6;
+  min-width: 18px;
+}
+
+.student-meetings-info-text {
+  font-size: 0.9rem;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.student-meetings-room-code {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  border: 1px solid #e2e8f0;
+}
+
+/* Description Section */
+.student-meetings-description-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.student-meetings-description-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 8px 0;
+}
+
+.student-meetings-description-text {
+  font-size: 0.85rem;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Card Footer */
+.student-meetings-card-footer {
+  padding: 16px 24px 20px;
+  border-top: 1px solid #f3f4f6;
+  background: #fafbfc;
+}
+
+.student-meetings-action-buttons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Join Buttons */
+.student-meetings-join-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  flex: 1;
+  justify-content: center;
+}
+
+.student-meetings-join-button--live {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  animation: pulse-green 2s infinite;
+}
+
+.student-meetings-join-button--live:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  50% { box-shadow: 0 0 0 4px rgba(16, 185, 129, 0); }
+}
+
+.student-meetings-join-button--upcoming {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+}
+
+.student-meetings-join-button--upcoming:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.student-meetings-button-icon {
+  font-size: 16px;
+}
+
+.student-meetings-button-text {
+  font-size: 0.9rem;
+}
+
+/* Copy Button */
+.student-meetings-copy-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: white;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+}
+
+.student-meetings-copy-button:hover {
+  color: #374151;
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+
+.student-meetings-copy-icon {
+  font-size: 14px;
+}
+
+.student-meetings-copy-text {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Ended Indicator */
+.student-meetings-ended-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  flex: 1;
+  justify-content: center;
+}
+
+.student-meetings-ended-icon {
+  color: #6b7280;
+  font-size: 16px;
+}
+
+.student-meetings-ended-text {
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .student-meetings-main-wrapper {
+    padding: 16px;
+  }
+
+  .student-meetings-header-section {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .student-meetings-main-title {
+    font-size: 1.5rem;
+  }
+
+  .student-meetings-grid-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .student-meetings-card-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .student-meetings-card-title {
+    margin-right: 0;
+  }
+
+  .student-meetings-action-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .student-meetings-join-button {
+    flex: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .student-meetings-card-header,
+  .student-meetings-card-body,
+  .student-meetings-card-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .student-meetings-info-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
+/* end design meeting page */

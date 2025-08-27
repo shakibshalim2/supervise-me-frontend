@@ -748,17 +748,6 @@ useEffect(() => {
 // In AdminDashboard.js - Update the updateProblemStatus function
 const updateProblemStatus = async (problemId, newStatus) => {
   try {
-    // ✅ Add confirmation for status-only updates
-    const confirmUpdate = window.confirm(
-      `Update ticket status to "${newStatus}" without sending a response message to the student?`
-    );
-    
-    if (!confirmUpdate) {
-      return;
-    }
-
-    console.log(`Updating problem ${problemId} to status: ${newStatus}`);
-    
     const response = await fetch(`${API_BASE}/api/admin/support/tickets/${problemId}/status`, {
       method: 'PUT',
       headers: {
@@ -787,7 +776,6 @@ const updateProblemStatus = async (problemId, newStatus) => {
 
     } else {
       console.error('Failed to update problem status');
-      alert('Failed to update problem status. Please try again.');
     }
   } catch (error) {
     console.error('Error updating problem status:', error);
@@ -823,12 +811,10 @@ const sendResponseToProblem = async (problemId) => {
       await fetchStudentProblems();
       
       alert('Response sent successfully!');
-    } else {
-      alert('Failed to send response. Please try again.');
-    }
+    } 
+
   } catch (error) {
     console.error('Error sending response:', error);
-    alert('Error sending response. Please try again.');
   }
 };
 
@@ -1140,6 +1126,7 @@ const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 const [reportError, setReportError] = useState('');
 
 // Add these helper functions before the renderContent function
+// Update the generateReport function in AdminDashboard.js
 const generateReport = async () => {
   if (!selectedReport) return;
   
@@ -1147,7 +1134,6 @@ const generateReport = async () => {
   setReportError('');
   
   try {
-    const API_BASE = process.env.REACT_APP_API_URL;
     const params = new URLSearchParams();
     
     if (startDate) params.append('startDate', startDate);
@@ -1159,14 +1145,17 @@ const generateReport = async () => {
       }
     });
     
-    if (!response.ok) throw new Error('Failed to generate report');
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to generate report');
+    }
     
-    const data = await response.json();
-    setGeneratedReport(data.data);
+    const result = await response.json();
+    setGeneratedReport(result.data);
     
   } catch (error) {
     console.error('Report generation error:', error);
-    setReportError('Failed to generate report. Please try again.');
+    setReportError(`Failed to generate report: ${error.message}`);
   } finally {
     setIsGeneratingReport(false);
   }
@@ -1248,14 +1237,15 @@ const renderChart = () => {
   return <ChartComponent data={chartData} {...getChartProps()} />;
 };
 
+// Update the getChartData function in AdminDashboard.js
 const getChartData = () => {
   switch (selectedReport) {
     case 'enrollment':
       return generatedReport.studentsByProgram?.map(item => ({
         name: item.program,
         students: item.students,
-        avgCGPA: item.avgCGPA,
-        avgCredits: item.avgCredits
+        avgCGPA: parseFloat(item.avgCGPA),
+        avgCredits: parseFloat(item.avgCredits)
       })) || [];
     case 'faculty':
       return generatedReport.facultyWorkload?.slice(0, 10).map(faculty => ({
@@ -1266,9 +1256,9 @@ const getChartData = () => {
       })) || [];
     case 'projects':
       return generatedReport.phaseDistribution?.map(phase => ({
-        name: phase.phase,
+        name: `Phase ${phase.phase}`,
         teams: phase.teams,
-        avgMembers: phase.avgMemberCount
+        avgMembers: parseFloat(phase.avgMemberCount)
       })) || [];
     case 'system':
       return [
@@ -1276,6 +1266,59 @@ const getChartData = () => {
         { name: 'Faculty', value: generatedReport.overview?.totalFaculty || 0 },
         { name: 'Teams', value: generatedReport.overview?.totalTeams || 0 },
         { name: 'Boards', value: generatedReport.overview?.totalBoards || 0 }
+      ];
+    default:
+      return [];
+  }
+};
+
+// Update the getTableData function
+const getTableData = () => {
+  switch (selectedReport) {
+    case 'enrollment':
+      return generatedReport.studentsByProgram?.map(item => ({
+        program: item.program,
+        students: item.students,
+        avgCGPA: item.avgCGPA,
+        avgCredits: item.avgCredits
+      })) || [];
+    case 'faculty':
+      return generatedReport.facultyWorkload?.map(faculty => ({
+        name: faculty.name,
+        department: faculty.department,
+        supervisedTeams: faculty.supervisedTeams,
+        boardMemberships: faculty.boardMemberships,
+        totalStudents: faculty.totalStudents,
+        workloadScore: faculty.workloadScore
+      })) || [];
+    case 'projects':
+      return generatedReport.phaseDistribution?.map(phase => ({
+        phase: `Phase ${phase.phase}`,
+        teams: phase.teams,
+        avgMembers: phase.avgMemberCount
+      })) || [];
+    case 'system':
+      return [
+        { 
+          metric: 'Students', 
+          count: generatedReport.overview?.totalStudents || 0, 
+          activity: `${generatedReport.recentActivity?.newStudentsThisWeek || 0} new this week` 
+        },
+        { 
+          metric: 'Faculty', 
+          count: generatedReport.overview?.totalFaculty || 0, 
+          activity: '-' 
+        },
+        { 
+          metric: 'Teams', 
+          count: generatedReport.overview?.totalTeams || 0, 
+          activity: `${generatedReport.recentActivity?.newTeamsThisWeek || 0} new this week` 
+        },
+        { 
+          metric: 'Support Tickets', 
+          count: generatedReport.overview?.supportTickets || 0, 
+          activity: `${generatedReport.recentActivity?.newTicketsThisWeek || 0} new this week` 
+        }
       ];
     default:
       return [];
@@ -1351,41 +1394,6 @@ const getTableHeaders = () => {
   }
 };
 
-const getTableData = () => {
-  switch (selectedReport) {
-    case 'enrollment':
-      return generatedReport.studentsByProgram?.map(item => ({
-        program: item.program,
-        students: item.students,
-        avgCGPA: item.avgCGPA.toFixed(2),
-        avgCredits: item.avgCredits.toFixed(1)
-      })) || [];
-    case 'faculty':
-      return generatedReport.facultyWorkload?.map(faculty => ({
-        name: faculty.name,
-        department: faculty.department,
-        supervisedTeams: faculty.supervisedTeams,
-        boardMemberships: faculty.boardMemberships,
-        totalStudents: faculty.totalStudents,
-        workloadScore: faculty.workloadScore
-      })) || [];
-    case 'projects':
-      return generatedReport.phaseDistribution?.map(phase => ({
-        phase: phase.phase,
-        teams: phase.teams,
-        avgMembers: phase.avgMemberCount.toFixed(1)
-      })) || [];
-    case 'system':
-      return [
-        { metric: 'Students', count: generatedReport.overview?.totalStudents || 0, activity: '-' },
-        { metric: 'Faculty', count: generatedReport.overview?.totalFaculty || 0, activity: '-' },
-        { metric: 'Teams', count: generatedReport.overview?.totalTeams || 0, activity: `${generatedReport.recentActivity?.newTeamsThisWeek || 0} new this week` },
-        { metric: 'Support Tickets', count: generatedReport.overview?.supportTickets || 0, activity: `${generatedReport.recentActivity?.newTicketsThisWeek || 0} new this week` }
-      ];
-    default:
-      return [];
-  }
-};
 
 // Update the existing handleExportExcel function
 const handleExportExcel = () => {
@@ -6592,8 +6600,8 @@ case "student-problems":
     <div className="problems-container">
       <div className="problems-header">
         <div className="problems-header-content">
-          <h1 className="problems-page-title">Student Problems & Support</h1>
-          <p className="problems-page-subtitle">Manage student-reported issues and provide assistance</p>
+          <h1 className="problems-page-title">Problems & Support</h1>
+          <p className="problems-page-subtitle">Manage issues and provide assistance</p>
         </div>
         
         <div className="problems-header-controls">

@@ -21173,5 +21173,708 @@ textarea:focus,
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+/* end */
 
+/* meeting design */
+/* Faculty Meeting Scheduler - Formal Professional Design */
 
+.faculty-meeting-scheduler-main-container {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  padding: 32px;
+  margin: 24px 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #2c3e50;
+  max-width: 1200px;
+  margin: 0 auto 24px;
+}
+
+/* Header Section */
+.faculty-meeting-scheduler-header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 40px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid #e8f4f8;
+}
+
+.faculty-meeting-scheduler-title-area {
+  flex: 1;
+}
+
+.faculty-meeting-scheduler-main-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.025em;
+}
+
+.faculty-meeting-scheduler-subtitle {
+  font-size: 16px;
+  color: #64748b;
+  margin: 0;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.faculty-meeting-scheduler-header-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.faculty-meeting-scheduler-schedule-btn {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2);
+}
+
+.faculty-meeting-scheduler-schedule-btn:hover {
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(30, 58, 138, 0.3);
+}
+
+.faculty-meeting-scheduler-schedule-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.faculty-meeting-scheduler-refresh-btn {
+  background: #ffffff;
+  color: #475569;
+  border: 2px solid #e2e8f0;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.faculty-meeting-scheduler-refresh-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+/* Teams Summary Section */
+.faculty-meeting-scheduler-teams-summary {
+  margin-bottom: 40px;
+}
+
+.faculty-meeting-scheduler-teams-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e3a8a;
+  margin: 0 0 20px 0;
+}
+
+.faculty-meeting-scheduler-teams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.faculty-meeting-scheduler-team-card {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.faculty-meeting-scheduler-team-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+  transform: translateY(-2px);
+}
+
+.faculty-meeting-scheduler-team-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.faculty-meeting-scheduler-team-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.faculty-meeting-scheduler-phase-badge {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.faculty-meeting-scheduler-team-info {
+  display: flex;
+  gap: 20px;
+}
+
+.faculty-meeting-scheduler-team-stat {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* No Teams Message */
+.faculty-meeting-scheduler-no-teams {
+  text-align: center;
+  padding: 60px 20px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 2px dashed #cbd5e1;
+}
+
+.faculty-meeting-scheduler-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.faculty-meeting-scheduler-empty-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #475569;
+  margin: 0 0 8px 0;
+}
+
+.faculty-meeting-scheduler-empty-text,
+.faculty-meeting-scheduler-empty-subtext {
+  color: #64748b;
+  margin: 4px 0;
+  line-height: 1.6;
+}
+
+/* Meetings Section */
+.faculty-meeting-scheduler-meetings-section {
+  margin-top: 40px;
+}
+
+.faculty-meeting-scheduler-meetings-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e3a8a;
+  margin: 0 0 24px 0;
+}
+
+.faculty-meeting-scheduler-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  gap: 12px;
+}
+
+.faculty-meeting-scheduler-spinner {
+  animation: spin 1s linear infinite;
+  color: #3b82f6;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.faculty-meeting-scheduler-loading-text {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.faculty-meeting-scheduler-no-meetings {
+  text-align: center;
+  padding: 60px 20px;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.faculty-meeting-scheduler-empty-calendar {
+  font-size: 48px;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.faculty-meeting-scheduler-no-meetings-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #475569;
+  margin: 0 0 8px 0;
+}
+
+.faculty-meeting-scheduler-no-meetings-text {
+  color: #64748b;
+  margin: 0;
+}
+
+/* Meetings List */
+.faculty-meeting-scheduler-meetings-list {
+  display: grid;
+  gap: 24px;
+}
+
+.faculty-meeting-scheduler-meeting-card {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s ease;
+}
+
+.faculty-meeting-scheduler-meeting-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.1);
+}
+
+.faculty-meeting-scheduler-meeting-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.faculty-meeting-scheduler-meeting-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+  flex: 1;
+  padding-right: 16px;
+}
+
+.faculty-meeting-scheduler-meeting-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.faculty-meeting-scheduler-status-badge {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.faculty-meeting-scheduler-status-badge.status-scheduled {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.faculty-meeting-scheduler-status-badge.status-completed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.faculty-meeting-scheduler-status-badge.status-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.faculty-meeting-scheduler-copy-btn {
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.faculty-meeting-scheduler-copy-btn:hover {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+/* Meeting Details */
+.faculty-meeting-scheduler-meeting-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.faculty-meeting-scheduler-info-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.faculty-meeting-scheduler-info-icon {
+  color: #3b82f6;
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.faculty-meeting-scheduler-info-text {
+  color: #475569;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.faculty-meeting-scheduler-room-code {
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  color: #1e40af;
+  font-weight: 600;
+}
+
+/* Meeting Description */
+.faculty-meeting-scheduler-meeting-description {
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-left: 4px solid #3b82f6;
+}
+
+.faculty-meeting-scheduler-description-label {
+  color: #1e293b;
+  font-size: 14px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.faculty-meeting-scheduler-description-text {
+  color: #475569;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Meeting Footer */
+.faculty-meeting-scheduler-meeting-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+  gap: 20px;
+}
+
+.faculty-meeting-scheduler-join-btn {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+}
+
+.faculty-meeting-scheduler-join-btn:hover {
+  background: linear-gradient(135deg, #047857 0%, #059669 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(5, 150, 105, 0.3);
+  text-decoration: none;
+  color: white;
+}
+
+.faculty-meeting-scheduler-meeting-link {
+  flex: 1;
+}
+
+.faculty-meeting-scheduler-link-label {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.faculty-meeting-scheduler-link-url {
+  color: #3b82f6;
+  text-decoration: none;
+  margin-left: 8px;
+}
+
+.faculty-meeting-scheduler-link-url:hover {
+  text-decoration: underline;
+}
+
+/* Modal Styles */
+.faculty-meeting-scheduler-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.faculty-meeting-scheduler-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.faculty-meeting-scheduler-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 32px;
+  border-bottom: 2px solid #e8f4f8;
+}
+
+.faculty-meeting-scheduler-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.faculty-meeting-scheduler-close-btn {
+  background: #f1f5f9;
+  color: #64748b;
+  border: none;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.faculty-meeting-scheduler-close-btn:hover {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+/* Form Styles */
+.faculty-meeting-scheduler-form {
+  padding: 32px;
+}
+
+.faculty-meeting-scheduler-form-group {
+  margin-bottom: 24px;
+}
+
+.faculty-meeting-scheduler-form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.faculty-meeting-scheduler-form-input,
+.faculty-meeting-scheduler-form-select,
+.faculty-meeting-scheduler-form-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #374151;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.faculty-meeting-scheduler-form-input:focus,
+.faculty-meeting-scheduler-form-select:focus,
+.faculty-meeting-scheduler-form-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.faculty-meeting-scheduler-form-input.error,
+.faculty-meeting-scheduler-form-select.error {
+  border-color: #ef4444;
+}
+
+.faculty-meeting-scheduler-form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.faculty-meeting-scheduler-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.faculty-meeting-scheduler-error-message {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+/* Modal Footer */
+.faculty-meeting-scheduler-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: 24px 32px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  border-radius: 0 0 16px 16px;
+}
+
+.faculty-meeting-scheduler-cancel-btn {
+  background: white;
+  color: #64748b;
+  border: 2px solid #e2e8f0;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.faculty-meeting-scheduler-cancel-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.faculty-meeting-scheduler-submit-btn {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.faculty-meeting-scheduler-submit-btn:hover {
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+  transform: translateY(-1px);
+}
+
+.faculty-meeting-scheduler-submit-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .faculty-meeting-scheduler-main-container {
+    padding: 20px;
+    margin: 16px;
+  }
+
+  .faculty-meeting-scheduler-header-section {
+    flex-direction: column;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  .faculty-meeting-scheduler-header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .faculty-meeting-scheduler-teams-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .faculty-meeting-scheduler-meeting-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .faculty-meeting-scheduler-meeting-details {
+    grid-template-columns: 1fr;
+  }
+
+  .faculty-meeting-scheduler-meeting-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .faculty-meeting-scheduler-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .faculty-meeting-scheduler-modal {
+    margin: 20px;
+    max-height: calc(100vh - 40px);
+  }
+
+  .faculty-meeting-scheduler-modal-footer {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .faculty-meeting-scheduler-main-container {
+    padding: 16px;
+    margin: 8px;
+  }
+
+  .faculty-meeting-scheduler-form,
+  .faculty-meeting-scheduler-modal-header {
+    padding: 20px;
+  }
+
+  .faculty-meeting-scheduler-modal-footer {
+    padding: 20px;
+  }
+
+  .faculty-meeting-scheduler-header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .faculty-meeting-scheduler-schedule-btn,
+  .faculty-meeting-scheduler-refresh-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+/* end meeting design */

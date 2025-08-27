@@ -65,6 +65,281 @@ const SpecialAccessBanner = ({ student }) => {
   );
 };
 
+// Add this component to StudentDashboard.js
+
+// Add this component to StudentDashboard.js
+function StudentMeetings() {
+  const [meetings, setMeetings] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [inlineNotification, setInlineNotification] = useState(null);
+  const [hasTeam, setHasTeam] = useState(true);
+
+  const showInlineNotification = (message, type = 'info') => {
+    setInlineNotification({ message, type, id: Date.now() });
+    setTimeout(() => {
+      setInlineNotification(null);
+    }, 3000);
+  };
+
+  const loadMeetings = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('studentToken');
+      const response = await fetch(`${API_BASE}/api/students/meetings`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setMeetings(data.meetings || []);
+        setHasTeam(true);
+      } else if (response.status === 404) {
+        const errorData = await response.json();
+        if (errorData.message === 'No team found') {
+          setHasTeam(false);
+          setMeetings([]);
+        }
+      } else {
+        throw new Error('Failed to load meetings');
+      }
+    } catch (error) {
+      console.error('Error loading meetings:', error);
+      showInlineNotification('Failed to load meetings', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatMeetingDateTime = (dateTime) => {
+    return new Date(dateTime).toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
+  };
+
+  const getMeetingStatus = (meeting) => {
+    const now = new Date();
+    const meetingTime = new Date(meeting.scheduledDateTime);
+    const meetingEndTime = new Date(meetingTime.getTime() + (meeting.duration * 60000));
+    
+    if (now < meetingTime) {
+      const timeDiff = meetingTime - now;
+      const minutesUntil = Math.floor(timeDiff / (1000 * 60));
+      
+      if (minutesUntil <= 15) {
+        return { status: 'starting-soon', label: 'Starting Soon' };
+      }
+      return { status: 'upcoming', label: 'Upcoming' };
+    } else if (now >= meetingTime && now <= meetingEndTime) {
+      return { status: 'live', label: 'Live Now' };
+    } else {
+      return { status: 'ended', label: 'Ended' };
+    }
+  };
+
+  const getTimeUntilMeeting = (dateTime) => {
+    const now = new Date();
+    const meetingTime = new Date(dateTime);
+    const timeDiff = meetingTime - now;
+    
+    if (timeDiff <= 0) return null;
+    
+    const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (days > 0) return `in ${days} day${days !== 1 ? 's' : ''}`;
+    if (hours > 0) return `in ${hours} hour${hours !== 1 ? 's' : ''}`;
+    if (minutes > 0) return `in ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    return 'starting now';
+  };
+
+  useEffect(() => {
+    loadMeetings();
+    
+    // Set up auto-refresh every 2 minutes
+    const interval = setInterval(loadMeetings, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="student-meetings-main-wrapper">
+      {/* Inline Notification */}
+      {inlineNotification && (
+        <div className={`inline-notification inline-notification--${inlineNotification.type}`}>
+          <span>{inlineNotification.message}</span>
+          <button onClick={() => setInlineNotification(null)}>×</button>
+        </div>
+      )}
+
+      <div className="student-meetings-header-section">
+        <div className="student-meetings-title-group">
+          <h2 className="student-meetings-main-title">My Scheduled Meetings</h2>
+          <p className="student-meetings-subtitle">
+            View and join meetings scheduled with your supervisor
+          </p>
+        </div>
+        
+        <button className="student-meetings-refresh-button" onClick={loadMeetings}>
+          <FaSync className="student-meetings-refresh-icon" />
+          <span className="student-meetings-refresh-text">Refresh</span>
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="student-meetings-loading-state">
+          <FaSpinner className="student-meetings-loading-spinner" />
+          <span className="student-meetings-loading-text">Loading your meetings...</span>
+        </div>
+      ) : !hasTeam ? (
+        <div className="student-meetings-empty-state">
+          <div className="student-meetings-empty-icon-wrapper">
+            <FaUsers className="student-meetings-empty-icon" />
+          </div>
+          <h3 className="student-meetings-empty-title">No Team Found</h3>
+          <p className="student-meetings-empty-description">
+            You need to be in a team to have meetings scheduled. Join or create a team first.
+          </p>
+        </div>
+      ) : meetings.length === 0 ? (
+        <div className="student-meetings-empty-state">
+          <div className="student-meetings-empty-icon-wrapper">
+            <FaCalendar className="student-meetings-empty-icon" />
+          </div>
+          <h3 className="student-meetings-empty-title">No meetings scheduled</h3>
+          <p className="student-meetings-empty-description">
+            Your supervisor will schedule meetings and you'll receive email invitations.
+          </p>
+        </div>
+      ) : (
+        <div className="student-meetings-grid-container">
+          {meetings.map(meeting => {
+            const meetingStatus = getMeetingStatus(meeting);
+            const timeUntil = getTimeUntilMeeting(meeting.scheduledDateTime);
+            
+            return (
+              <div 
+                key={meeting.meetingId} 
+                className={`student-meetings-card student-meetings-card--${meetingStatus.status}`}
+              >
+                <div className="student-meetings-card-header">
+                  <h3 className="student-meetings-card-title">{meeting.title}</h3>
+                  <div className="student-meetings-badge-container">
+                    <span className={`student-meetings-status-badge student-meetings-status-badge--${meetingStatus.status}`}>
+                      {meetingStatus.label}
+                    </span>
+                    {timeUntil && (
+                      <span className="student-meetings-time-until">
+                        {timeUntil}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="student-meetings-card-body">
+                  <div className="student-meetings-info-grid">
+                    <div className="student-meetings-info-item">
+                      <FaChalkboardTeacher className="student-meetings-info-icon" />
+                      <span className="student-meetings-info-text">
+                        Supervisor: {meeting.supervisorName}
+                      </span>
+                    </div>
+                    
+                    <div className="student-meetings-info-item">
+                      <FaUsers className="student-meetings-info-icon" />
+                      <span className="student-meetings-info-text">
+                        Team: {meeting.teamName || meeting.teamId?.name}
+                      </span>
+                    </div>
+                    
+                    <div className="student-meetings-info-item">
+                      <FaCalendar className="student-meetings-info-icon" />
+                      <span className="student-meetings-info-text">
+                        {formatMeetingDateTime(meeting.scheduledDateTime)}
+                      </span>
+                    </div>
+                    
+                    <div className="student-meetings-info-item">
+                      <FaClock className="student-meetings-info-icon" />
+                      <span className="student-meetings-info-text">
+                        Duration: {meeting.duration} minutes
+                      </span>
+                    </div>
+                    
+
+                  </div>
+
+                  {meeting.description && (
+                    <div className="student-meetings-description-section">
+                      <h4 className="student-meetings-description-title">Meeting Description:</h4>
+                      <p className="student-meetings-description-text">{meeting.description}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="student-meetings-card-footer">
+                  <div className="student-meetings-action-buttons">
+                    {(meetingStatus.status === 'live' || meetingStatus.status === 'starting-soon') && (
+                      <a
+                        href={meeting.meetingLink}
+                        className={`student-meetings-join-button student-meetings-join-button--${meetingStatus.status}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <FaVideo className="student-meetings-button-icon" />
+                        <span className="student-meetings-button-text">
+                          {meetingStatus.status === 'live' ? 'Join Now - Meeting is Live!' : 'Join Meeting'}
+                        </span>
+                      </a>
+                    )}
+                    
+                    {meetingStatus.status === 'upcoming' && (
+                      <a
+                        href={meeting.meetingLink}
+                        className="student-meetings-join-button student-meetings-join-button--upcoming"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <FaVideo className="student-meetings-button-icon" />
+                        <span className="student-meetings-button-text">Join Meeting</span>
+                      </a>
+                    )}
+
+                    {meetingStatus.status === 'ended' && (
+                      <div className="student-meetings-ended-indicator">
+                        <FaCheckCircle className="student-meetings-ended-icon" />
+                        <span className="student-meetings-ended-text">Meeting Ended</span>
+                      </div>
+                    )}
+
+                    <button
+                      className="student-meetings-copy-button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(meeting.meetingLink);
+                        showInlineNotification('Meeting link copied!', 'success');
+                      }}
+                      title="Copy meeting link"
+                    >
+                      <FaClipboardList className="student-meetings-copy-icon" />
+                      <span className="student-meetings-copy-text">Copy Link</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 
 const StudentProfile = ({ student }) => {
   // ✅ ADD NULL CHECK
@@ -594,9 +869,12 @@ useEffect(() => {
   const [gpa, setGpa] = useState(null);            // cumulative GPA
 
   // Fetch once on mount or whenever the tab becomes active
-  useEffect(() => {
-    if (activeTab === "grades" && grades.length === 0) loadGrades();
-  }, [activeTab]);
+useEffect(() => {
+  if (activeTab === "grades" && Array.isArray(grades) && grades.length === 0) {
+    loadGrades();
+  }
+}, [activeTab]);
+
 
   const loadGrades = async () => {
     try {
@@ -606,12 +884,14 @@ useEffect(() => {
       });
       if (res.ok) {
         const data = await res.json();
-        setGrades(data.courses);
-        setGpa(data.gpa);
+      setGrades(data.courses || []);
+      setGpa(data.gpa || null);
       }
 
     } catch (err) {
       console.error(err);
+      setGrades([]);
+    setGpa(null);
     }
   };
   // ===== MOBILE SIDEBAR FUNCTIONS =====
@@ -3445,9 +3725,11 @@ const leaveTeamMeeting = async () => {
       ...serverNotifications.filter(n => !deletedNotificationIds.has(n._id))
     ];
 
-    const unreadCount = activeNotifications.filter(n => !n.read).length;
-    setNotificationCount(unreadCount);
-  }, [localNotifications, serverNotifications, deletedNotificationIds]);
+   const totalIncomingRequests = incomingRequests.length + incomingJoinRequests.length;
+  const unreadCount = activeNotifications.filter(n => !n.read).length;
+  
+  setNotificationCount(unreadCount);
+}, [localNotifications, serverNotifications, deletedNotificationIds, incomingRequests, incomingJoinRequests]); // ✅ Add dependencies
 
 
   // ✅ FIXED: Single consolidated polling system
@@ -4299,43 +4581,61 @@ useEffect(() => {
 
 
   // In StudentDashboard.js, around line 3800, update the handleAcceptRequest function
-  const handleAcceptRequest = async (requestId) => {
-    setAcceptingInvitationId(requestId);
-    try {
-      const token = localStorage.getItem('studentToken') || localStorage.getItem('token');
+  // In StudentDashboard.js, update the handleAcceptRequest function
+const handleAcceptRequest = async (requestId) => {
+  setAcceptingInvitationId(requestId);
+  try {
+    const token = localStorage.getItem('studentToken') || localStorage.getItem('token');
 
-      const response = await fetch(`${API_BASE}/api/teams/accept-request`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ requestId })
-      });
+    const response = await fetch(`${API_BASE}/api/teams/accept-request`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ requestId })
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (response.ok) {
-
-         if (!data.team) {
+    if (response.ok) {
+      if (!data.team) {
         return;
       }
 
-        // Filter out the accepted request
-        setIncomingRequests(prev => prev.filter(req => req._id !== requestId));
+      // ✅ IMMEDIATE: Remove the accepted request from incoming requests
+      setIncomingRequests(prev => prev.filter(req => req._id !== requestId));
+      
+      // ✅ IMMEDIATE: Clear from incoming join requests as well
+      setIncomingJoinRequests(prev => prev.filter(req => req._id !== requestId));
 
-        // Set the team (either new or existing)
-        setMyTeam(data.team);
+      // Set the team (either new or existing)
+      setMyTeam(data.team);
 
-        loadAllTeams();
-  
-  // Update user's team data
-  loadMyTeam();
-        // Update all teams list
-       setAllTeams(prev => {
-        // Filter out any undefined elements first
+      // ✅ FORCE REFRESH: Load team requests again to ensure sync
+      setTimeout(async () => {
+        await loadTeamRequests();
+        // Also refresh incoming requests to make sure count is accurate
+        const updatedToken = localStorage.getItem('studentToken') || localStorage.getItem('token');
+        try {
+          const refreshResponse = await fetch(`${API_BASE}/api/teams/requests/incoming`, {
+            headers: { 'Authorization': `Bearer ${updatedToken}` }
+          });
+          if (refreshResponse.ok) {
+            const refreshedRequests = await refreshResponse.json();
+            setIncomingRequests(refreshedRequests);
+          }
+        } catch (refreshError) {
+          console.error('Error refreshing incoming requests:', refreshError);
+        }
+      }, 500);
+
+      loadAllTeams();
+      loadMyTeam();
+
+      // Update all teams list
+      setAllTeams(prev => {
         const validTeams = prev.filter(t => t && t._id);
-        
         const existingTeamIndex = validTeams.findIndex(t => 
           t._id === data.team._id
         );
@@ -4349,54 +4649,51 @@ useEffect(() => {
         }
       });
 
-        // ✅ NEW: Clear all sent invitations when joining a team
-        console.log('🧹 Clearing sent invitations - user joined a team');
-        setPendingRequests([]);
-        localStorage.removeItem('pendingTeamRequests');
+      // Clear all sent invitations when joining a team
+      console.log('🧹 Clearing sent invitations - user joined a team');
+      setPendingRequests([]);
+      localStorage.removeItem('pendingTeamRequests');
 
-        // ✅ NEW: Show notification about canceled invitations
-        if (data.cancelledRequests && data.cancelledRequests > 0) {
-          setTimeout(() => {
-            addNotification(
-              "info",
-              `Your ${data.cancelledRequests} pending invitation${data.cancelledRequests > 1 ? 's have' : ' has'} been automatically canceled since you joined a team.`
-            );
-          }, 2000);
-        }
-
-        const teamName = data.team?.name || 'Unknown Team';
-      const memberCount = data.memberCount || data.team?.members?.length || 0;
-        // Enhanced success message with member count
-        const successMessage = data.isTeamFull
-          ? `Successfully joined team "${data.team.name}"! Team is now complete (4/4 members).`
-          : `Successfully joined team "${data.team.name}"! (${data.memberCount}/4 members)`;
-
-        addNotification("success", successMessage);
-        setActiveTab("join-team");
-
-      } else {
-        // Handle team full scenario
-        if (data.action === 'team_full') {
-          addNotification("error", `❌ ${data.message}`);
-
-          // Remove this request since team is full
-          setIncomingRequests(prev => prev.filter(req => req._id !== requestId));
-
-          // Show detailed error message
-          setTimeout(() => {
-            addNotification("info", `The team "${data.teamName}" has reached maximum capacity. Try joining other available teams.`);
-          }, 2000);
-        } else {
-          addNotification("error", data.message || "Failed to accept request");
-        }
+      // Show notification about canceled invitations
+      if (data.cancelledRequests && data.cancelledRequests > 0) {
+        setTimeout(() => {
+          addNotification(
+            "info",
+            `Your ${data.cancelledRequests} pending invitation${data.cancelledRequests > 1 ? 's have' : ' has'} been automatically canceled since you joined a team.`
+          );
+        }, 2000);
       }
-    } catch (error) {
-      console.error('Accept request error:', error);
-      addNotification("error", "Network error: Failed to accept request");
-    } finally {
-      setAcceptingInvitationId(null);
+
+      const successMessage = data.isTeamFull
+        ? `Successfully joined team "${data.team.name}"! Team is now complete (4/4 members).`
+        : `Successfully joined team "${data.team.name}"! (${data.memberCount}/4 members)`;
+
+      addNotification("success", successMessage);
+      setActiveTab("join-team");
+
+    } else {
+      // Handle team full scenario
+      if (data.action === 'team_full') {
+        addNotification("error", `❌ ${data.message}`);
+        
+        // Remove this request since team is full
+        setIncomingRequests(prev => prev.filter(req => req._id !== requestId));
+        
+        setTimeout(() => {
+          addNotification("info", `The team "${data.teamName}" has reached maximum capacity. Try joining other available teams.`);
+        }, 2000);
+      } else {
+        addNotification("error", data.message || "Failed to accept request");
+      }
     }
-  };
+  } catch (error) {
+    console.error('Accept request error:', error);
+    addNotification("error", "Network error: Failed to accept request");
+  } finally {
+    setAcceptingInvitationId(null);
+  }
+};
+
 
 
   const handleRejectRequest = async (requestId) => {
@@ -4418,9 +4715,6 @@ useEffect(() => {
         const request = incomingRequests.find(req => req._id === requestId);
         setIncomingRequests(prev => prev.filter(req => req._id !== requestId));
         addNotification("info", `Declined invitation to join "${request?.teamName || 'team'}"`);
-      }
-      else {
-        alert("Failed to reject request");
       }
     } catch (error) {
       console.error('Reject request error:', error);
@@ -5728,6 +6022,18 @@ const getAvailableCategories = () => {
   </button>
 )}
 
+{myTeam && myTeam.currentSupervisor && (
+  <button
+    className={activeTab === "meetings" ? "active" : ""}
+    onClick={() => {
+      setActiveTab("meetings");
+      closeMobileSidebar();
+    }}
+  >
+    <FaVideo />
+    <span>Meetings</span>
+  </button>
+)}
 
 <button
   className={activeTab === "deliverables" ? "active" : ""}
@@ -6815,50 +7121,6 @@ const getAvailableCategories = () => {
                     </div>
 
                     <div className="card-footer">
-
-                      {myTeam && (
-        <div className="team-meeting-section">
-          {teamHasActiveMeeting ? (
-            <div className="active-meeting-info">
-              <div className="meeting-status">
-                <span className="status-indicator active"></span>
-                <span>Meeting in progress</span>
-              </div>
-              <div className="meeting-details">
-                <small>
-                  Started by {activeMeetingInfo?.startedBy} at{' '}
-                  {new Date(activeMeetingInfo?.startTime).toLocaleTimeString()}
-                </small>
-              </div>
-              <button
-                className="join-meeting-btn"
-                onClick={startTeamMeeting}
-                disabled={isInTeamMeeting}
-              >
-                {isInTeamMeeting ? (
-                  <>
-                    <FaVideo /> In Meeting
-                  </>
-                ) : (
-                  <>
-                    <FaVideo /> Join Meeting
-                  </>
-                )}
-              </button>
-            </div>
-          ) : (
-            <button
-              className="start-meeting-btn"
-              onClick={startTeamMeeting}
-              disabled={!myTeam || myTeam.members.length < 2}
-            >
-              <FaVideo />
-              Start Team Meeting
-            </button>
-          )}
-        </div>
-      )}
-
                       <button
                         className="primary-btn"
                         onClick={() => setActiveTab("chat")}
@@ -8119,27 +8381,6 @@ const requestSent = pendingRequests.some(req =>
           </div>
           <div className="chat-actions">
             {/* NEW: Member Details Button */}
-          
-            {/* Meeting Controls */}
-            {!isInTeamMeeting ? (
-              <button
-                className="start-meeting-btn"
-                onClick={startTeamMeeting}
-                title="Start team meeting with video/audio"
-              >
-                <FaVideo />
-                Start Team Meeting
-              </button>
-            ) : (
-              <button
-                className="leave-meeting-btn"
-                onClick={leaveTeamMeeting}
-                title="Leave current meeting"
-              >
-                <FaPhoneSlash />
-                Leave Meeting
-              </button>
-            )}
 
             <button
               className="member-details-btn"
@@ -8670,22 +8911,7 @@ const requestSent = pendingRequests.some(req =>
                 <strong>Finalized:</strong> {formatDate(gradeRecord.finalizedAt)}
               </div>
               
-              {gradeRecord.isModified && (
-                <div className="modification-notice">
-                  <FaInfoCircle className="info-icon" />
-                  <div>
-                    <strong>Grade Modified by Admin</strong>
-                    {gradeRecord.modificationReason && (
-                      <p>Reason: {gradeRecord.modificationReason}</p>
-                    )}
-                  </div>
-                </div>
-              )}
               
-              <div className="grade-breakdown">
-                <h5>Grade Breakdown:</h5>
-                <p>{gradeRecord.breakdown.finalCalculation}</p>
-              </div>
             </div>
           </div>
         ))}
@@ -8937,6 +9163,12 @@ const requestSent = pendingRequests.some(req =>
         </div>
       )}
     </div>
+  </div>
+)}
+
+{activeTab === "meetings" && (
+  <div className="content-box">
+    <StudentMeetings />
   </div>
 )}
 
